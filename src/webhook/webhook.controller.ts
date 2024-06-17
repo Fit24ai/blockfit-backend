@@ -7,8 +7,7 @@ export class WebhookController {
   constructor(private readonly webhookService: WebhookService) {}
 
   @Post('payment-received')
-  handleWebhook(@Body() body:any){
-    console.log(body)
-    return this.webhookService.paymentReceived()
+  handleWebhook(@Body('data') data:PaymenReceivedDto[]){
+    return this.webhookService.paymentReceived(data[0])
   }
 }
