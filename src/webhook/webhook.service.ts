@@ -12,4 +12,13 @@ export class WebhookService {
     @InjectModel(Transaction.name) private Transaction: Model<Transaction>,
     private readonly ethersService: EthersService,
   ) {}
+
+  async paymentReceived(){
+    try {
+      console.log()
+      return {message:"Success"}
+    } catch (error) {
+      console.log(error)
+    }
+  }
 }
