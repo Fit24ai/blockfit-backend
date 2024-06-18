@@ -5,7 +5,7 @@ import { Transaction } from 'ethers';
 import { Model } from 'mongoose';
 import { TransactionStatusEnum } from 'src/types/transaction';
 import { EthersService } from 'src/ethers/ethers.service';
-import { PaymenReceivedDto } from './dto/paymentReceived.dto';
+import { PaymentReceivedDto } from './dto/paymentReceived.dto';
 
 @Injectable()
 export class WebhookService {
@@ -19,9 +19,9 @@ export class WebhookService {
     return `0x${address.slice(2)}`;
   }
 
-  async paymentReceived(paymentReceived:PaymenReceivedDto){
+  async paymentReceived(paymentReceived:PaymentReceivedDto){
     try {
-      const paymentReceivedFormatted:PaymenReceivedDto = {
+      const paymentReceivedFormatted:PaymentReceivedDto = {
         id: this.formatAddress(paymentReceived.id),
         amount: paymentReceived.amount,
         token: this.formatAddress(paymentReceived.token),
