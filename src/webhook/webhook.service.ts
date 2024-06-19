@@ -19,7 +19,7 @@ export class WebhookService {
     @InjectModel(Transaction.name) private Transaction: Model<Transaction>,
     private readonly ethersService: EthersService,
     private readonly transferService: TransferService,
-  ) { }
+  ) {}
 
   private formatAddress(address: string): string {
     console.log(address);
@@ -27,6 +27,7 @@ export class WebhookService {
   }
 
   async paymentReceived(paymentReceived: PaymentReceivedDto) {
+    console.log({ paymentReceived });
     try {
       const paymentReceivedFormatted: PaymentReceivedDto = {
         id: this.formatAddress(paymentReceived.id),
@@ -59,7 +60,7 @@ export class WebhookService {
       transaction.distributionHash = txHash;
       transaction.distributionStatus = DistributionStatusEnum.DISTRIBUTED;
       transaction.tokenAmount = amount;
-      
+
       await transaction.save();
       return { message: 'Success' };
     } catch (error) {
