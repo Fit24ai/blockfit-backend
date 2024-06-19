@@ -12,7 +12,6 @@ export class TransferService {
   constructor(
     @InjectModel(Transaction.name) private Transaction: Model<Transaction>,
     private readonly ethersService: EthersService,
-    private readonly transactionService: TransactionService,
   ) {}
 
   async transferTokens(transferBody: TransferTokensDto) {
@@ -20,7 +19,7 @@ export class TransferService {
 
     const tx = await this.ethersService.signedIcoContract.buyToken(
       purchaseAmount,
-      walletAddress,
+      // walletAddress,
     );
 
     await tx.wait();
@@ -31,7 +30,7 @@ export class TransferService {
     const parsedLog = this.ethersService.icoInterface.parseLog(
       receipt?.logs[2]!,
     );
-
-    // return this.transactionService.updateTransaction(transactionHash, )
+    console.log({ receipt, parsedLog });
+    return tx.hash;
   }
 }

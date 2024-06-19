@@ -21,9 +21,13 @@ export class TransactionController {
   constructor(private readonly transactionService: TransactionService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   @UsePipes(ValidationPipe)
-  createTransaction(@Body() transaction: CreateTransactionDto) {
-    return this.transactionService.createTransaction(transaction);
+  createTransaction(
+    @Body() transaction: CreateTransactionDto,
+    @Request() req: UserRequest,
+  ) {
+    return this.transactionService.createTransaction(transaction, req.user._id);
   }
 
   @Get()

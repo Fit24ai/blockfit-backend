@@ -16,6 +16,9 @@ export class Transaction {
   @Prop({ type: String })
   distributionHash: string;
 
+  @Prop({ type: String, required: true, default: '0' })
+  amountBigNumber: string
+
   @Prop({ type: String, enum: ChainEnum, required: true })
   chain: ChainEnum;
 

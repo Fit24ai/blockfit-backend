@@ -8,9 +8,9 @@ export class PaymentReceivedDto {
   id: string;
 
   @IsNotEmpty()
-  @IsNumber()
+  @IsString()
   @ApiProperty()
-  amount: number;
+  amount: string;
 
   @IsNotEmpty()
   @ApiProperty()
