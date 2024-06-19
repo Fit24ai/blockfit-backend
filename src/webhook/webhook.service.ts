@@ -50,14 +50,17 @@ export class WebhookService {
       transaction.tokenAddress = paymentReceivedFormatted.token;
 
       await transaction.save();
-      const distributionHash = await this.transferService.transferTokens({
+      const { txHash, amount } = await this.transferService.transferTokens({
         walletAddress: paymentReceivedFormatted.user,
         purchaseAmount: BigInt(paymentReceivedFormatted.amount),
         transactionHash: paymentReceivedFormatted.transaction_hash,
       });
 
-      transaction.distributionHash = distributionHash;
+      transaction.distributionHash = txHash;
       transaction.distributionStatus = DistributionStatusEnum.DISTRIBUTED;
+      transaction.tokenAmount = amount;
+      
+      await transaction.save();
       return { message: 'Success' };
     } catch (error) {
       console.log(error);

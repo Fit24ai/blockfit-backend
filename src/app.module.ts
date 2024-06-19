@@ -14,6 +14,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './passport/passport.strategy';
 import { TransactionModule } from './transaction/transaction.module';
 import { TransferModule } from './transfer/transfer.module';
+import { ListsModule } from './lists/lists.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { TransferModule } from './transfer/transfer.module';
     AuthModule,
     TransactionModule,
     TransferModule,
+    ListsModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy],

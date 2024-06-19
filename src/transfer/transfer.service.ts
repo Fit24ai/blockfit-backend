@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Transaction } from 'ethers';
+import { Transaction, formatUnits } from 'ethers';
 import { Model } from 'mongoose';
 import { TransactionStatusEnum } from 'src/types/transaction';
 import { EthersService } from 'src/ethers/ethers.service';
@@ -31,6 +31,6 @@ export class TransferService {
       receipt?.logs[2]!,
     );
     console.log({ receipt, parsedLog });
-    return tx.hash;
+    return { txHash: tx.hash, amount: formatUnits(parsedLog.args[2], 18) };
   }
 }

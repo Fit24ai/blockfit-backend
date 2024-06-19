@@ -36,6 +36,9 @@ export class Transaction {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   user: Types.ObjectId;
 
+  @Prop({ type: String, required: true, default: '0' })
+  tokenAmount: string;
+
   @Prop({
     type: String,
     enum: DistributionStatusEnum,
