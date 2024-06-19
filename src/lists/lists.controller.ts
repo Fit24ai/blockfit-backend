@@ -1,16 +1,29 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
 import { ListsService } from './lists.service';
-import { CreateListDto } from './dto/create-list.dto';
-import { UpdateListDto } from './dto/update-list.dto';
+import { JoinWaitlistDto } from './dto/join-waitlist.dto';
+import { ApiTags } from '@nestjs/swagger';
+import { NewsletterDto } from './dto/newsletter.dto';
 
+@ApiTags('lists')
 @Controller('lists')
 export class ListsController {
   constructor(private readonly listsService: ListsService) {}
 
-  // @Post('join-waitlist')
-  // create(@Body() createListDto: Dto) {
-  //   return this.listsService.create(createListDto);
-  // }
+  @Post('newsletter')
+  @UsePipes(ValidationPipe)
+  newsletter(@Body() body: NewsletterDto) {
+    return this.listsService.newsletter(body);
+  }
 
-
+  @Post('join-waitlist')
+  @UsePipes(ValidationPipe)
+  create(@Body() body: JoinWaitlistDto) {
+    return this.listsService.joinWaitlist(body);
+  }
 }
