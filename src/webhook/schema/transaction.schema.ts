@@ -33,8 +33,8 @@ export class Transaction {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   user: Types.ObjectId;
 
-  @Prop({ type: Number, required: true, default: 0 })
-  tokenAmount: number;
+  @Prop({ type: String, required: true, default: '0' })
+  tokenAmount: string;
 
   @Prop({
     type: String,
