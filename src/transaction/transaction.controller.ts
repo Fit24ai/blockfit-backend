@@ -18,7 +18,7 @@ import { UserRequest } from 'src/types/user';
 @ApiTags('transaction')
 @Controller('transaction')
 export class TransactionController {
-  constructor(private readonly transactionService: TransactionService) {}
+  constructor(private readonly transactionService: TransactionService) { }
 
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -40,7 +40,7 @@ export class TransactionController {
   @ApiBearerAuth()
   getAllTransactions(@Request() request: UserRequest) {
     return this.transactionService.getAllTransactions(
-      request.user.walletAddress,
+      request.user._id,
     );
   }
 }

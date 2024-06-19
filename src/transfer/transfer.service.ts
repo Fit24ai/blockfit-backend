@@ -12,7 +12,7 @@ export class TransferService {
   constructor(
     @InjectModel(Transaction.name) private Transaction: Model<Transaction>,
     private readonly ethersService: EthersService,
-  ) {}
+  ) { }
 
   async transferTokens(transferBody: TransferTokensDto) {
     const { walletAddress, purchaseAmount, transactionHash } = transferBody;
@@ -31,6 +31,6 @@ export class TransferService {
       receipt?.logs[2]!,
     );
     console.log({ receipt, parsedLog });
-    return { txHash: tx.hash, amount: formatUnits(parsedLog.args[2], 18) };
+    return { txHash: tx.hash, amount: parsedLog.args[2] };
   }
 }
