@@ -19,7 +19,7 @@ export class WebhookService {
     @InjectModel(Transaction.name) private Transaction: Model<Transaction>,
     private readonly ethersService: EthersService,
     private readonly transferService: TransferService,
-  ) {}
+  ) { }
 
   private formatAddress(address: string): string {
     console.log(address);
@@ -47,6 +47,7 @@ export class WebhookService {
 
       transaction.transactionStatus = TransactionStatusEnum.CONFIRMED;
       transaction.amountBigNumber = String(paymentReceived.amount);
+      transaction.tokenAddress = paymentReceivedFormatted.token;
 
       await transaction.save();
       const distributionHash = await this.transferService.transferTokens({
