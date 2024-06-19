@@ -1,3 +1,4 @@
+import { User } from './../users/schema/user.schema';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, ObjectId } from 'mongoose';
@@ -12,7 +13,7 @@ import {
 export class TransactionService {
   constructor(
     @InjectModel(Transaction.name) private Transaction: Model<Transaction>,
-  ) {}
+  ) { }
 
   async createTransaction(
     transaction: CreateTransactionDto,
@@ -27,9 +28,9 @@ export class TransactionService {
     });
   }
 
-  async getAllTransactions(walletAddress: string): Promise<Transaction[]> {
+  async getAllTransactions(userId: ObjectId): Promise<Transaction[]> {
     return this.Transaction.find({
-      user: { walletAddress: { $regex: walletAddress, $options: 'i' } },
+      user: userId,
     });
   }
 
