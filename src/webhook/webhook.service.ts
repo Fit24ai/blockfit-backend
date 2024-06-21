@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { TransferTokensDto } from '../transfer/dto/transferTokens.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Contract } from 'ethers';
@@ -22,12 +22,11 @@ export class WebhookService {
   ) {}
 
   private formatAddress(address: string): string {
-    console.log(address);
     return `0x${address.slice(2)}`;
+    // return address;
   }
 
   async paymentReceived(paymentReceived: PaymentReceivedDto) {
-    console.log({ paymentReceived });
     try {
       const paymentReceivedFormatted: PaymentReceivedDto = {
         id: this.formatAddress(paymentReceived.id),
@@ -44,7 +43,15 @@ export class WebhookService {
           $regex: paymentReceivedFormatted.transaction_hash,
           $options: 'i',
         },
+        distributionStatus: DistributionStatusEnum.PENDING,
       });
+
+      if (!transaction) {
+        throw new BadRequestException({
+          success: false,
+          message: 'Transaction not found',
+        });
+      }
 
       transaction.transactionStatus = TransactionStatusEnum.CONFIRMED;
       transaction.amountBigNumber = String(paymentReceived.amount);

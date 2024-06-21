@@ -12,25 +12,27 @@ export class TransferService {
   constructor(
     @InjectModel(Transaction.name) private Transaction: Model<Transaction>,
     private readonly ethersService: EthersService,
-  ) { }
+  ) {}
 
   async transferTokens(transferBody: TransferTokensDto) {
     const { walletAddress, purchaseAmount, transactionHash } = transferBody;
+    try {
+      const tx = await this.ethersService.signedIcoContract.buyToken(
+        purchaseAmount,
+        walletAddress,
+      );
 
-    const tx = await this.ethersService.signedIcoContract.buyToken(
-      purchaseAmount,
-      // walletAddress,
-    );
+      await tx.wait();
 
-    await tx.wait();
-
-    const receipt = await this.ethersService.icoProvider.getTransactionReceipt(
-      tx.hash,
-    );
-    const parsedLog = this.ethersService.icoInterface.parseLog(
-      receipt?.logs[2]!,
-    );
-    console.log({ receipt, parsedLog });
-    return { txHash: tx.hash, amount: parsedLog.args[2] };
+      const receipt =
+        await this.ethersService.icoProvider.getTransactionReceipt(tx.hash);
+      const parsedLog = this.ethersService.icoInterface.parseLog(
+        receipt?.logs[2]!,
+      );
+      return { txHash: tx.hash, amount: parsedLog.args[2] };
+    } catch (error) {
+      console.log(error.message);
+      throw error;
+    }
   }
 }

@@ -8,6 +8,7 @@ export class WebhookController {
 
   @Post('payment-received')
   handleWebhook(@Body('data') data: PaymentReceivedDto[]) {
+    console.log(data)
     return this.webhookService.paymentReceived(data[0]);
   }
 }
