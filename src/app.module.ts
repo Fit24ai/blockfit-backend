@@ -15,6 +15,7 @@ import { JwtStrategy } from './passport/passport.strategy';
 import { TransactionModule } from './transaction/transaction.module';
 import { TransferModule } from './transfer/transfer.module';
 import { ListsModule } from './lists/lists.module';
+import { RandomiserModule } from './randomiser/randomiser.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { ListsModule } from './lists/lists.module';
     TransactionModule,
     TransferModule,
     ListsModule,
+    RandomiserModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy],
