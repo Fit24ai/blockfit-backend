@@ -6,7 +6,6 @@ import { Transaction } from 'ethers';
 import { TransactionSchema } from 'src/webhook/schema/transaction.schema';
 import { EthersModule } from 'src/ethers/ethers.module';
 import { EthersService } from 'src/ethers/ethers.service';
-import { TransactionService } from 'src/transaction/transaction.service';
 
 @Module({
   imports: [
@@ -17,6 +16,6 @@ import { TransactionService } from 'src/transaction/transaction.service';
     EthersModule,
     TransferModule,
   ],
-  providers: [TransferService, EthersService, TransactionService],
+  providers: [TransferService, EthersService],
 })
 export class TransferModule {}

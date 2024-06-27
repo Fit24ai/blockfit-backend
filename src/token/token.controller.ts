@@ -19,6 +19,11 @@ export class TokenController {
     return this.tokenService.getCurrentStage();
   }
 
+  @Get("all-stage-info")
+  getAllStageInfo() {
+    return this.tokenService.getAllStageInfo();
+  }
+
   @Get('user-tokens')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)

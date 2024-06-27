@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Transaction } from 'ethers';
+import { Transaction, formatUnits } from 'ethers';
 import { Model } from 'mongoose';
 import { TransactionStatusEnum } from 'src/types/transaction';
 import { EthersService } from 'src/ethers/ethers.service';
@@ -12,26 +12,27 @@ export class TransferService {
   constructor(
     @InjectModel(Transaction.name) private Transaction: Model<Transaction>,
     private readonly ethersService: EthersService,
-    private readonly transactionService: TransactionService,
   ) {}
 
   async transferTokens(transferBody: TransferTokensDto) {
     const { walletAddress, purchaseAmount, transactionHash } = transferBody;
+    try {
+      const tx = await this.ethersService.signedIcoContract.buyToken(
+        purchaseAmount,
+        walletAddress,
+      );
 
-    const tx = await this.ethersService.signedIcoContract.buyToken(
-      purchaseAmount,
-      walletAddress,
-    );
+      await tx.wait();
 
-    await tx.wait();
-
-    const receipt = await this.ethersService.icoProvider.getTransactionReceipt(
-      tx.hash,
-    );
-    const parsedLog = this.ethersService.icoInterface.parseLog(
-      receipt?.logs[2]!,
-    );
-
-    // return this.transactionService.updateTransaction(transactionHash, )
+      const receipt =
+        await this.ethersService.icoProvider.getTransactionReceipt(tx.hash);
+      const parsedLog = this.ethersService.icoInterface.parseLog(
+        receipt?.logs[2]!,
+      );
+      return { txHash: tx.hash, amount: parsedLog.args[2] };
+    } catch (error) {
+      console.log(error.message);
+      throw error;
+    }
   }
 }

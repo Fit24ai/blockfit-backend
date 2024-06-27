@@ -1,6 +1,7 @@
+import { User } from './../users/schema/user.schema';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, ObjectId } from 'mongoose';
 import { Transaction } from 'src/webhook/schema/transaction.schema';
 import { CreateTransactionDto } from './dto/createTransaction.dto';
 import {
@@ -12,20 +13,25 @@ import {
 export class TransactionService {
   constructor(
     @InjectModel(Transaction.name) private Transaction: Model<Transaction>,
-  ) {}
+  ) { }
 
   async createTransaction(
     transaction: CreateTransactionDto,
+    userId: ObjectId,
   ): Promise<Transaction> {
-    return this.Transaction.create(transaction);
+    return this.Transaction.create({ ...transaction, user: userId });
   }
 
   async getTransaction(transactionHash: string): Promise<Transaction> {
-    return this.Transaction.findOne({ transactionHash });
+    return this.Transaction.findOne({
+      transactionHash: { $regex: transactionHash, $options: 'i' },
+    });
   }
 
-  async getAllTransactions(walletAddress: string): Promise<Transaction[]> {
-    return this.Transaction.find({ user: { walletAddress } });
+  async getAllTransactions(userId: ObjectId): Promise<Transaction[]> {
+    return this.Transaction.find({
+      user: userId,
+    });
   }
 
   async updateTransaction(
