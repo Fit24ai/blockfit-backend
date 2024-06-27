@@ -44,6 +44,9 @@ importers:
       ethers:
         specifier: ^6.13.0
         version: 6.13.0
+      math:
+        specifier: ^0.0.3
+        version: 0.0.3
       mongoose:
         specifier: ^8.4.1
         version: 8.4.1
@@ -2133,6 +2136,10 @@ packages:
 
   makeerror@1.0.12:
     resolution: {integrity: sha512-JmqCvUhmt43madlpFzG4BQzG2Z3m6tvQDNKdClZnO3VbIudJYmxsT0FNJMeiB2+JTSlTQTSbU8QdesVmwJcmLg==}
+
+  math@0.0.3:
+    resolution: {integrity: sha512-xyNJxsEwpYBabFmCgwg7TFRljf5oGgV2h1TqP0H9RnykScaSKgoVlBaEz+Gov8NOdxFagoTzRg1aEBfayi8qQQ==}
+    engines: {node: '> 0.0.0'}
 
   media-typer@0.3.0:
     resolution: {integrity: sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==}
@@ -5627,6 +5634,8 @@ snapshots:
   makeerror@1.0.12:
     dependencies:
       tmpl: 1.0.5
+
+  math@0.0.3: {}
 
   media-typer@0.3.0: {}
 
