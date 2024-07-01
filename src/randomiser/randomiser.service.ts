@@ -32,15 +32,20 @@ export class RandomiserService {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
   async getRandomNumber() {
-    const randomiserId = '667d015bdcb53a6e814e00cb';
+    const randomiserId = process.env.RANDOMISER_ID;
     const randomiserData = await this.RandomiserModel.findById(randomiserId);
-    let apr = 0;
-    let randomNumber: number;
-    while (apr === 0 && randomiserData.count < 100) {
-      randomNumber = this.getRandomInt(0, 100);
-      apr = randomiserData.randomiser[randomNumber];
+
+    if (!randomiserData.randomiser.length) {
+      randomiserData.randomiser = [...randomiserData.default];
     }
-    randomiserData.randomiser[randomNumber] = 0;
+    const randomIndex = this.getRandomInt(
+      0,
+      randomiserData.randomiser.length - 1,
+    );
+
+    const apr = randomiserData.randomiser[randomIndex];
+
+    randomiserData.randomiser.splice(randomIndex, 1);
 
     randomiserData.count = randomiserData.count + 1;
 
