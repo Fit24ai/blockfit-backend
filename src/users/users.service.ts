@@ -24,12 +24,24 @@ export class UsersService {
       );
     if (user) {
       if (request.email && request.number) {
+        const userEmail = await this.User.findOne({
+          email: { $regex: request.email, $options: 'i' },
+        });
+        const userNumber = await this.User.findOne({
+          number: request.number,
+        });
+        if (userEmail || userNumber) {
+          return {
+            error: 'Email or number already exists',
+            email: false,
+          };
+        }
         user.email = request.email;
         user.number = request.number;
         await user.save();
       } else if (!user.email || !user.number) {
         return {
-          error: 'email and number are required',
+          error: 'Email and number are required',
           email: false,
         };
       }
@@ -40,7 +52,19 @@ export class UsersService {
   async createUser(walletAddress: string, email: string, number: number) {
     if (!email || !number) {
       return {
-        error: 'email and number are required',
+        error: 'Email and number are required',
+        email: false,
+      };
+    }
+    const userEmail = await this.User.findOne({
+      email: { $regex: email, $options: 'i' },
+    });
+    const userNumber = await this.User.findOne({
+      number: number,
+    });
+    if (userEmail || userNumber) {
+      return {
+        error: 'Email or number already exists',
         email: false,
       };
     }
