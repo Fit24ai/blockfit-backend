@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, UsePipes, ValidationPipe } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
 import { PaymentReceivedDto } from './dto/paymentReceived.dto';
 

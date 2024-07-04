@@ -45,7 +45,6 @@ export class WebhookService {
     amount: string,
     user: string,
   ) {
-    console.log(chain, transactionHash, amount, user, 'hello data');
     switch (chain) {
       case ChainEnum.ETHEREUM:
         const providerReceiptEth =
@@ -72,7 +71,6 @@ export class WebhookService {
   }
 
   async paymentReceived(paymentReceived: PaymentReceivedDto) {
-    try {
       const paymentReceivedFormatted: PaymentReceivedDto = {
         id: this.formatAddress(paymentReceived.id),
         amount: paymentReceived.amount,
@@ -132,8 +130,5 @@ export class WebhookService {
 
       await transaction.save();
       return { message: 'Success' };
-    } catch (error) {
-      throw error
-    }
   }
 }

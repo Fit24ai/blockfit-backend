@@ -8,6 +8,7 @@ import {
 } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { SentryExceptionFilter } from './utils/sentry-exception-handler';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -15,6 +16,7 @@ async function bootstrap() {
       origin: ['http://localhost:3000', 'https://fit24-ui.vercel.app'],
     },
   });
+
 
   const config = new DocumentBuilder()
     .setTitle('Fit24 API Reference')
@@ -25,6 +27,9 @@ async function bootstrap() {
 
   const { httpAdapter } = app.get(HttpAdapterHost);
   Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
+
+  app.useGlobalFilters(new SentryExceptionFilter());
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
