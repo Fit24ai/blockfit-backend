@@ -29,6 +29,8 @@
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/swagger": "^7.3.1",
+    "@sentry/nestjs": "^8.14.0",
+    "@sentry/profiling-node": "^8.14.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "eth-crypto": "^2.6.0",
