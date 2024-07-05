@@ -14,5 +14,8 @@ export class Randomiser {
 
   @Prop({type:Number,default: 0})
   count:number
+
+  @Prop({type:Number})
+  plan:number
 }
 export const RandomiserSchema = SchemaFactory.createForClass(Randomiser);

@@ -1,39 +1,58 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import * as math from 'math';
 import { Randomiser } from './schema/randomiser.schema';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { APRList } from './utils/APRList';
 
 @Injectable()
 export class RandomiserService {
   constructor(
     @InjectModel(Randomiser.name) private RandomiserModel: Model<Randomiser>,
+    private readonly APRList: APRList,
   ) {}
 
-  async createRandomiser() {
-    const aPRData = [
-      74, 72, 72, 72, 72, 72, 74, 72, 72, 72, 73, 72, 73, 72, 73, 73, 74, 72,
-      74, 73, 72, 72, 73, 86, 72, 73, 72, 72, 72, 96, 72, 72, 74, 72, 74, 72,
-      72, 73, 72, 73, 73, 73, 72, 72, 72, 72, 73, 72, 72, 72, 73, 73, 74, 73,
-      72, 74, 74, 72, 73, 73, 81, 73, 73, 72, 72, 74, 74, 72, 73, 74, 72, 72,
-      73, 73, 72, 73, 73, 72, 73, 74, 74, 72, 72, 72, 73, 74, 72, 73, 72, 73,
-      73, 74, 72, 72, 74, 73, 72, 74, 72, 72,
-    ];
-    const randomiser = await this.RandomiserModel.create({
-      default: aPRData,
-      randomiser: aPRData,
+  async createYearPlanRandomiser(aprData: number[], plan: number) {
+    const isExist = await this.RandomiserModel.findOne({ plan });
+    if (isExist) {
+      throw new BadRequestException({
+        success: false,
+        message: 'Randomiser Data already exist for this plan',
+      });
+    }
+    return this.RandomiserModel.create({
+      default: aprData,
+      randomiser: aprData,
+      plan,
     });
+  }
+  async createRandomiser(selectPlan: number) {
+    if (selectPlan === 1) {
+      return this.createYearPlanRandomiser(APRList.APR_1Year, selectPlan);
+    } else if (selectPlan === 2) {
+      return this.createYearPlanRandomiser(APRList.APR_2Year, selectPlan);
+    } else if (selectPlan === 3) {
+      return this.createYearPlanRandomiser(APRList.APR_3Year, selectPlan);
+    }
 
-    return {
-      message: 'Created Successfully',
-    };
+    throw new BadRequestException({
+      success: false,
+      message: 'Invalid Randomiser plan selected',
+    });
   }
   private getRandomInt(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
-  async getRandomNumber() {
-    const randomiserId = process.env.RANDOMISER_ID;
-    const randomiserData = await this.RandomiserModel.findById(randomiserId);
+  async getRandomNumber(selectedPlan: number) {
+    if (!selectedPlan && !(selectedPlan > 0) && !(selectedPlan <= 3)) {
+      throw new BadRequestException({
+        success: false,
+        message: 'Please select valid plan',
+      });
+    }
+    const randomiserData = await this.RandomiserModel.findOne({
+      plan: selectedPlan,
+    });
 
     if (!randomiserData.randomiser.length) {
       randomiserData.randomiser = [...randomiserData.default];
