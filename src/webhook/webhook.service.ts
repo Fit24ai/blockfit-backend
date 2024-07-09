@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { TransferTokensDto } from '../transfer/dto/transferTokens.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Contract, LogDescription } from 'ethers';
+import { Contract, formatUnits, LogDescription, parseEther, parseUnits } from 'ethers';
 import { Model } from 'mongoose';
 import {
   ChainEnum,
@@ -118,7 +118,10 @@ export class WebhookService {
       await transaction.save();
       const { txHash, amount } = await this.transferService.transferTokens({
         walletAddress: paymentReceivedFormatted.user,
-        purchaseAmount: BigInt(paymentReceivedFormatted.amount),
+        purchaseAmount: 
+          transaction.chain === ChainEnum.BINANCE 
+            ? BigInt(paymentReceivedFormatted.amount) 
+            : parseEther(formatUnits(paymentReceivedFormatted.amount, 6)),
         transactionHash: paymentReceivedFormatted.transaction_hash,
       });
 
