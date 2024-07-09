@@ -1,5 +1,9 @@
 const paymentAbi = [
-  { inputs: [], stateMutability: 'nonpayable', type: 'constructor' },
+  {
+    inputs: [],
+    stateMutability: 'nonpayable',
+    type: 'constructor',
+  },
   {
     anonymous: false,
     inputs: [
@@ -47,14 +51,28 @@ const paymentAbi = [
   {
     inputs: [],
     name: 'owner',
-    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    outputs: [
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+    ],
     stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [
-      { internalType: 'uint256', name: 'amount', type: 'uint256' },
-      { internalType: 'address', name: 'token', type: 'address' },
+      {
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
+      },
+      {
+        internalType: 'address',
+        name: 'token',
+        type: 'address',
+      },
     ],
     name: 'pay',
     outputs: [],
@@ -69,14 +87,26 @@ const paymentAbi = [
     type: 'function',
   },
   {
-    inputs: [{ internalType: 'address', name: '_treasury', type: 'address' }],
+    inputs: [
+      {
+        internalType: 'address',
+        name: '_treasury',
+        type: 'address',
+      },
+    ],
     name: 'seTreasury',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
   },
   {
-    inputs: [{ internalType: 'address', name: 'newOwner', type: 'address' }],
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'newOwner',
+        type: 'address',
+      },
+    ],
     name: 'transferOwnership',
     outputs: [],
     stateMutability: 'nonpayable',
@@ -85,14 +115,62 @@ const paymentAbi = [
   {
     inputs: [],
     name: 'treasury',
-    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    outputs: [
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '_treasury',
+        type: 'address',
+      },
+      {
+        internalType: 'address',
+        name: '_usdt',
+        type: 'address',
+      },
+      {
+        internalType: 'address',
+        name: '_usdc',
+        type: 'address',
+      },
+    ],
+    name: 'updateAddresses',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'usdc',
+    outputs: [
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+    ],
     stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [],
-    name: 'weth',
-    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'usdt',
+    outputs: [
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+    ],
     stateMutability: 'view',
     type: 'function',
   },
