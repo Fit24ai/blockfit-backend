@@ -49,7 +49,7 @@ export class UsersService {
     return this.signToken(request.walletAddress);
   }
 
-  async createUser(walletAddress: string, email: string, number: number) {
+  async createUser(walletAddress: string, email: string, number: string) {
     if (!email || !number) {
       return {
         error: 'Email and number are required',

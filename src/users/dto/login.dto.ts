@@ -19,6 +19,6 @@ export class LoginDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
-  @IsNumber()
-  number: number;
+  @IsString()
+  number: string;
 }
