@@ -25,7 +25,7 @@ export class TransferService {
 
   private async signerSignature(messageHash: string) {
     const signature = EthCrypto.sign(
-      this.configService.get('WALLET_PRIVATE_KEY'),
+      this.configService.get('PRIVATE_KEY'),
       messageHash,
     );
     return signature;
@@ -55,7 +55,7 @@ export class TransferService {
       );
       return { txHash: tx.hash, amount: parsedLog.args[2] };
     } catch (error) {
-      console.log(error.message);
+      console.log({error});
       throw error;
     }
   }

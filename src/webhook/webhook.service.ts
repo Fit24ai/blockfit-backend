@@ -32,7 +32,7 @@ export class WebhookService {
     amount: string,
     user: string,
   ) {
-    if (BigInt(logs.args[0]) === BigInt(amount) && logs.args[2] === user) {
+    if (BigInt(logs.args[0]) === BigInt(amount) && logs.args[2].toLowerCase() === user.toLowerCase()) {
       return true;
     } else {
       return false;
@@ -110,8 +110,6 @@ export class WebhookService {
           message: 'Invalid transaction',
         });
       }
-
-      //getReciept
 
       transaction.transactionStatus = TransactionStatusEnum.CONFIRMED;
       transaction.amountBigNumber = String(paymentReceived.amount);
