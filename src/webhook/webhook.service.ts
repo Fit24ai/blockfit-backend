@@ -75,7 +75,7 @@ export class WebhookService {
         id: this.formatAddress(paymentReceived.id),
         amount: paymentReceived.amount,
         token: this.formatAddress(paymentReceived.token),
-        user: paymentReceived.user,
+        user: this.formatAddress(paymentReceived.user),
         block_number: paymentReceived.block_number,
         block_timestamp: paymentReceived.block_timestamp,
         transaction_hash: this.formatAddress(paymentReceived.transaction_hash),
