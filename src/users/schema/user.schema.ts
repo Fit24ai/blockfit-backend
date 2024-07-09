@@ -9,8 +9,8 @@ export class User {
   walletAddress: string;
   @Prop({ type: String, required: true })
   email: string;
-  @Prop({ type: String, required: true })
-  number: string;
+  @Prop({ type: Number, required: true })
+  number: number;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
