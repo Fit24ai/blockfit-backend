@@ -8,6 +8,7 @@ import {
 import icoAbi from './libs/abi/icoAbi';
 import paymentAbi from './libs/abi/paymentAbi';
 import { ChainEnum } from 'src/types/transaction';
+import stakingAbi from './libs/abi/stakingAbi';
 
 @Injectable()
 export class EthersService {
@@ -42,7 +43,7 @@ export class EthersService {
 
   public paymentInterface = new Interface(paymentAbi);
   public icoInterface = new Interface(icoAbi);
-
+  public stakingInterface = new Interface(stakingAbi);
   public getProvider(chain: ChainEnum) {
     switch (chain) {
       case ChainEnum.ETHEREUM:
