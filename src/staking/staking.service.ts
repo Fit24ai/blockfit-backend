@@ -4,12 +4,14 @@ import { EthersService } from 'src/ethers/ethers.service';
 import { Staking } from './schema/staking.schema';
 import { Model } from 'mongoose';
 import { LogDescription } from 'ethers';
+import { StakeDuration } from './schema/stakeDuration.schema';
 
 @Injectable()
 export class StakingService {
   constructor(
     private readonly ethersService: EthersService,
     @InjectModel(Staking.name) private StakingModel: Model<Staking>,
+    @InjectModel(StakeDuration.name) private StakeDurationModel: Model<StakeDuration>,
   ) {}
 
   private BigIntToNumber(value: BigInt) {
@@ -17,15 +19,16 @@ export class StakingService {
   }
 
   async createStakingRecord(txHash: string) {
-    console.log('createStakingRecord', txHash);
     const receipt =
       await this.ethersService.binanceProvider.getTransactionReceipt(txHash);
     const logs: LogDescription = this.ethersService.stakingInterface.parseLog(
       receipt?.logs[receipt.logs.length - 1],
     );
 
-    console.log(receipt,"receipt")
-    console.log(logs,"logs")
+    const stakeDuration = await this.StakeDurationModel.findOne({poolType:Number(logs.args[3])})
+    if(!stakeDuration){
+      throw new Error('Stake duration not found')
+    }
 
     const createRecord = await this.StakingModel.create({
       stakeId: Number(logs.args[5]),
@@ -34,6 +37,8 @@ export class StakingService {
       apr: Number(logs.args[2])/10,
       poolType: Number(logs.args[3]),
       startTime: Number(logs.args[4]),
+      stakeDuration:stakeDuration.duration,
+      txHash
     });
     return { stake: createRecord };
   }
@@ -44,7 +49,13 @@ export class StakingService {
         $regex: walletAddress,
         $options: 'i',
       },
-    });
+    }).sort({startTime:-1});
     return { stakes };
   }
+
+  async createStakeDuration(stakeDuration:{poolType:number, duration:number}) {
+    const createRecord = await this.StakeDurationModel.create(stakeDuration);
+    return { stakeDuration: createRecord };
+  }
+
 }

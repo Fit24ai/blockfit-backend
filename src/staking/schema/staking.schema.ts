@@ -10,6 +10,9 @@ export class Staking {
   @Prop({ type: String, required: true })
   walletAddress: string;
 
+  @Prop({ type: String, required: true })
+  txHash: string;
+
   @Prop({ type: Number, required: true })
   amount: number;
 
@@ -21,6 +24,9 @@ export class Staking {
 
   @Prop({ type: Number, required: true })
   startTime: number;
+
+  @Prop({ type: Number, required: true })
+  stakeDuration: number;
 }
 
 export const StakingSchema = SchemaFactory.createForClass(Staking);

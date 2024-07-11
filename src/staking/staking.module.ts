@@ -5,11 +5,12 @@ import { EthersModule } from 'src/ethers/ethers.module';
 import { EthersService } from 'src/ethers/ethers.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Staking, StakingSchema } from './schema/staking.schema';
+import { StakeDuration, StakeDurationSchema } from './schema/stakeDuration.schema';
 
 @Module({
   imports: [
     EthersModule,
-    MongooseModule.forFeature([{ name: Staking.name, schema: StakingSchema }]),
+    MongooseModule.forFeature([{ name: Staking.name, schema: StakingSchema },{name: StakeDuration.name, schema: StakeDurationSchema}]),
   ],
   controllers: [StakingController],
   providers: [StakingService, EthersService],

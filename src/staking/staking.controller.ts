@@ -1,5 +1,6 @@
-import { Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { StakingService } from './staking.service';
+import { StakeDuration } from './schema/stakeDuration.schema';
 
 @Controller('staking')
 export class StakingController {
@@ -18,4 +19,11 @@ export class StakingController {
     ){
         return this.stakingService.getAllStakesByUser(walletAddress)
     }
+
+    @Post('create-stake-duration')
+    async createStakeDuration(@Body() StakeDuration:{poolType:number, duration:number}){
+        return this.stakingService.createStakeDuration(StakeDuration)
+    }
+
+
 }
