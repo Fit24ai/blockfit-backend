@@ -27,6 +27,16 @@ export class Staking {
 
   @Prop({ type: Number, required: true })
   stakeDuration: number;
+
+  @Prop({ type: Boolean, required: false })
+  isReferred:boolean
+
+  @Prop({ type: Number, required: false })
+  level: number;
+
+  @Prop({ type: Number, required: false })
+  refId: number;
+
 }
 
 export const StakingSchema = SchemaFactory.createForClass(Staking);
