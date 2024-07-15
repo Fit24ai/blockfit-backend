@@ -109,10 +109,12 @@ export class StakingService {
   }
 
   async createClaimedRewardForStake(txHash: string) {
+    console.log(txHash)
     const txExist = await this.claimedRewardForStakeModel.find({
-      txHash
+      txHash:{$regex: txHash, $options: 'i'}
     })
-    if(txExist) {
+    console.log(txExist)
+    if(txExist.length) {
       throw new ConflictException("transaction already exists")
     }
     const receipt =
@@ -145,7 +147,7 @@ export class StakingService {
   async getAllClaimedRewardsByUser(walletAddress: string) {
     const allStakedClaims = await this.claimedRewardForStakeModel.find({
       walletAddress,
-    });
+    }).sort({'timestamp':-1});
 
     return allStakedClaims.length ? allStakedClaims : [];
   }
@@ -154,7 +156,7 @@ export class StakingService {
     const referralStream = await this.StakingModel.find({
       isReferred: true,
       walletAddress,
-    });
+    }).sort({'startTime':-1});
     const result = [];
 
     for (const referral of referralStream) {
