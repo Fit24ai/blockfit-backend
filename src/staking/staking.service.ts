@@ -28,7 +28,7 @@ export class StakingService {
       txHash
     })
 
-    if(txExist) {
+    if(txExist.length) {
       throw new ConflictException("transaction already exists")
     }
     const receipt =
@@ -113,7 +113,6 @@ export class StakingService {
     const txExist = await this.claimedRewardForStakeModel.find({
       txHash:{$regex: txHash, $options: 'i'}
     })
-    console.log(txExist)
     if(txExist.length) {
       throw new ConflictException("transaction already exists")
     }
