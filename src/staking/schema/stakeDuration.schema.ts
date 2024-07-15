@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Types } from 'mongoose';
 
-export type UserDocument = HydratedDocument<StakeDuration>;
+export type StakedDurationDocument = HydratedDocument<StakeDuration>;
 
 @Schema({ timestamps: true, collection: 'stakeDuration' })
 export class StakeDuration {
