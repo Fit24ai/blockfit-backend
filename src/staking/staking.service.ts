@@ -135,11 +135,23 @@ export class StakingService {
         amount: this.BigIntToNumber(parsedLog[2]),
         timestamp: Number(parsedLog[3]),
         txHash,
+        
       };
 
       return formattedClaimedLog;
     });
 
+    for (const log of claimedRewards) {
+      try {
+        const stake = await this.StakingModel.findOne({ stakeId: log.stakeId });
+        if (stake) {
+          log.poolType = stake.poolType;
+          log.isReferred = stake.isReferred;
+        }
+      } catch (error) {
+        console.error(`Error processing log with stakeId ${log.stakeId}:`, error);
+      }
+    }
     return this.claimedRewardForStakeModel.insertMany(claimedRewards);
   }
 

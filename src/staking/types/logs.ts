@@ -18,4 +18,6 @@ export interface IClaimedRewardForStake{
   amount: number;
   timestamp: number;
   txHash: string;
+  poolType?: number;
+  isReferred?: boolean;
 }
