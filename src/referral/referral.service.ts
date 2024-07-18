@@ -100,4 +100,17 @@ export class ReferralService {
 
     return referrals.length ? referrals : []
   }
+
+  async addReferral(){
+    const referral = await this.ReferralTransaction.create({
+      referrer: "0x50ca1fde29d62292a112a72671e14a5d4f05580f",
+      buyer: "0x87668df194f50bea46f021a09ee2b361eeba3617",
+      buyAmount: "0",
+      referralIncome: "300000000000000000",
+      transactionHash: "0xac8fc33df462798d039ac78a903a3efc5ed4f19075590eaddeed9140dc7442f8",
+      token: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+      "chain": "BINANCE",
+      "blockNumber": "40581452"
+    })
+  }
 }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Patch,
   Post,
   Query,
@@ -30,8 +31,13 @@ export class ReferralController {
     return this.referralService.registerReferrer(req.user, refId);
   }
 
+  @Post('add-referral')
+  async addReferral(){
+    return this.referralService.addReferral()
+  }
+
   @UseGuards(JwtAuthGuard)
-  @Post('get-referral-income')
+  @Get('get-all-my-referrals')
   getReferralIncome(@Request() req: UserRequest) {
     return this.referralService.getUserReferralIncome(req.user.walletAddress);
   }
