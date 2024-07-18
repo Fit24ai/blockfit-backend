@@ -21,7 +21,7 @@ export class ReferralReceivedDto {
   @IsNotEmpty()
   @IsString()
   @ApiProperty()
-  buyer_amount: string;
+  buy_amount: string;
 
 
   @IsNotEmpty()

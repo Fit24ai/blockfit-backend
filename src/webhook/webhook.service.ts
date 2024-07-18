@@ -168,7 +168,7 @@ export class WebhookService {
     const referralReceivedFormatted: ReferralReceivedDto = {
       referrer: this.formatAddress(referralReceived.referrer),
       buyer: this.formatAddress(referralReceived.buyer),
-      buyer_amount: referralReceived.buyer_amount,
+      buy_amount: referralReceived.buy_amount,
       referral_income: referralReceived.referral_income,
       token: this.formatAddress(referralReceived.token),
       transaction_hash: this.formatAddress(referralReceived.transaction_hash),
@@ -178,7 +178,7 @@ export class WebhookService {
 
     const referralTransaction = await this.ReferralTransaction.create({
       ...referralReceivedFormatted,
-      buyAmount:referralReceivedFormatted.buyer_amount,
+      buyAmount:referralReceivedFormatted.buy_amount,
       referralIncome: referralReceivedFormatted.referral_income,
       transactionHash: referralReceivedFormatted.transaction_hash,
       blockNumber: referralReceivedFormatted.block_number,
