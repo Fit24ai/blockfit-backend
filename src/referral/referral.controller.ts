@@ -29,4 +29,10 @@ export class ReferralController {
   ) {
     return this.referralService.registerReferrer(req.user, refId);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('get-referral-income')
+  getReferralIncome(@Request() req: UserRequest) {
+    return this.referralService.getUserReferralIncome(req.user.walletAddress);
+  }
 }
