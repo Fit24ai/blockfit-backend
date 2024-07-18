@@ -20,7 +20,7 @@ export class WebhookController {
     @Body('data') data: PaymentReceivedDto[],
     @Query('chain') chain: ChainEnum,
   ) {
-    console.log(data);
+    console.log({paymentReceived: data});
     return this.webhookService.paymentReceived(data[0], chain);
   }
 
@@ -29,7 +29,7 @@ export class WebhookController {
     @Body('data') data: ReferralReceivedDto[],
     @Query('chain') chain: ChainEnum,
   ) {
-    console.log(data);
+    console.log({referralReceived: data});
     return this.webhookService.referralReceived(data[0],chain);
   }
 }
