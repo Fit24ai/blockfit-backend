@@ -27,7 +27,8 @@ import { ReferralReceivedDto } from './dto/referralReceived.dto';
 export class WebhookService {
   constructor(
     @InjectModel(Transaction.name) private Transaction: Model<Transaction>,
-    @InjectModel(ReferralTransaction.name) private ReferralTransaction: Model<ReferralTransaction>,
+    @InjectModel(ReferralTransaction.name)
+    private ReferralTransaction: Model<ReferralTransaction>,
 
     @InjectModel(User.name) private User: Model<User>,
     private readonly ethersService: EthersService,
@@ -101,8 +102,10 @@ export class WebhookService {
         $regex: paymentReceivedFormatted.transaction_hash,
         $options: 'i',
       },
-      distributionStatus: DistributionStatusEnum.PENDING,
     });
+
+    if (transaction.distributionStatus === DistributionStatusEnum.DISTRIBUTED)
+      throw new BadRequestException('Already received transaction');
 
     if (!transaction) {
       // throw new BadRequestException({
@@ -164,7 +167,10 @@ export class WebhookService {
     return { message: 'Success' };
   }
 
-  async referralReceived(referralReceived:ReferralReceivedDto,chain:ChainEnum){
+  async referralReceived(
+    referralReceived: ReferralReceivedDto,
+    chain: ChainEnum,
+  ) {
     const referralReceivedFormatted: ReferralReceivedDto = {
       referrer: this.formatAddress(referralReceived.referrer),
       buyer: this.formatAddress(referralReceived.buyer),
@@ -174,17 +180,25 @@ export class WebhookService {
       transaction_hash: this.formatAddress(referralReceived.transaction_hash),
       block_number: referralReceived.block_number,
       block_timestamp: referralReceived.block_timestamp,
-    }
+    };
+
+    const referralTx = await this.ReferralTransaction.findOne({
+      where: {
+        transactionHash: referralReceivedFormatted.transaction_hash,
+      },
+    });
+
+    if (referralTx) throw new BadRequestException('Referral Tx Already Exists');
 
     const referralTransaction = await this.ReferralTransaction.create({
       ...referralReceivedFormatted,
-      buyAmount:referralReceivedFormatted.buy_amount,
+      buyAmount: referralReceivedFormatted.buy_amount,
       referralIncome: referralReceivedFormatted.referral_income,
       transactionHash: referralReceivedFormatted.transaction_hash,
       blockNumber: referralReceivedFormatted.block_number,
-      chain: chain
-    })
+      chain: chain,
+    });
 
-    return { message: 'Success' }
+    return { message: 'Success' };
   }
 }
