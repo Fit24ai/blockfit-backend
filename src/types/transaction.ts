@@ -14,4 +14,5 @@ export enum DistributionStatusEnum {
   PENDING = 'PENDING',
   DISTRIBUTED = 'DISTRIBUTED',
   FAILED = 'FAILED',
+  PROCESSING = 'PROCESSING',
 }

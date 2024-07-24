@@ -104,7 +104,7 @@ export class WebhookService {
       },
     });
 
-    if (transaction.distributionStatus === DistributionStatusEnum.DISTRIBUTED)
+    if (transaction.distributionStatus === DistributionStatusEnum.DISTRIBUTED ||  transaction.distributionStatus === DistributionStatusEnum.PROCESSING)
       throw new BadRequestException('Already received transaction');
 
     if (!transaction) {
@@ -127,7 +127,7 @@ export class WebhookService {
         chain: chain,
         user: user._id,
         transactionStatus: TransactionStatusEnum.CONFIRMED,
-        distributionStatus: DistributionStatusEnum.PENDING,
+        distributionStatus: DistributionStatusEnum.PROCESSING,
       });
     }
 
@@ -146,6 +146,7 @@ export class WebhookService {
     }
 
     transaction.transactionStatus = TransactionStatusEnum.CONFIRMED;
+    transaction.distributionStatus = DistributionStatusEnum.PROCESSING;
     transaction.amountBigNumber = String(paymentReceived.amount);
     transaction.tokenAddress = paymentReceivedFormatted.token;
 
