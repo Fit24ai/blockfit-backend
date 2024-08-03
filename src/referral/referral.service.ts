@@ -6,11 +6,14 @@ import { User } from 'src/users/schema/user.schema';
 import { v4 } from 'uuid';
 import EthCrypto from 'eth-crypto';
 import { ConfigService } from '@nestjs/config';
+import { ReferralTransaction } from 'src/webhook/schema/referralTransaction.schema';
 
 @Injectable()
 export class ReferralService {
   constructor(
     @InjectModel(User.name) private UserModel: Model<User>,
+    @InjectModel(ReferralTransaction.name) private ReferralTransaction: Model<ReferralTransaction>,
+
     private readonly configService: ConfigService,
   ) {}
 
@@ -22,6 +25,7 @@ export class ReferralService {
     return signature;
   }
   async payWithReferral(amount: bigint, user: User) {
+    console.log(amount)
     if (user.referredBy === null || !user.referredBy) {
       return {
         referred: false,
@@ -42,11 +46,12 @@ export class ReferralService {
         signature: null,
       };
     }
+
     const noonce = v4();
     console.log(noonce, amount, referrer.walletAddress);
     const messageHash = solidityPackedKeccak256(
       ['string', 'address', 'uint256'],
-      [noonce, referrer.walletAddress, amount],
+      [noonce, referrer.walletAddress, BigInt(amount)],
     );
 
     const signature = await this.signerSignature(messageHash);
@@ -86,5 +91,13 @@ export class ReferralService {
     return {
       message: 'Referral registered successfully',
     };
+  }
+
+  async getUserReferralIncome(walletAddress:string){
+    const referrals = await this.ReferralTransaction.find({
+      referrer:{$regex:walletAddress, $options: 'i'}
+    })
+
+    return referrals.length ? referrals : []
   }
 }
