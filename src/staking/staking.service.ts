@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { EthersService } from 'src/ethers/ethers.service';
 import { Staking } from './schema/staking.schema';
@@ -7,6 +11,7 @@ import { LogDescription } from 'ethers';
 import { StakeDuration } from './schema/stakeDuration.schema';
 import { ClaimedRewardForStakeHistory } from './schema/claimedRewardForStakeHistory.schema';
 import { IRefStakeLogs, IClaimedRewardForStake } from './types/logs';
+import { TransactionStatusEnum } from 'src/types/transaction';
 
 @Injectable()
 export class StakingService {
@@ -23,13 +28,23 @@ export class StakingService {
     return Number(value) / Math.pow(10, 18);
   }
 
-  async createStakingRecord(txHash: string) {
-    const txExist = await this.StakingModel.find({
-      txHash
-    })
+  async createStake(txHash: string, walletAddress: string) {
+    const stake = await this.StakingModel.create({
+      txHash: txHash,
+      walletAddress,
+    });
+    return {
+      message: 'Stake create successfully',
+    };
+  }
+  async verifyStakingRecord(txHash: string, walletAddress: string) {
+    const transaction = await this.StakingModel.findOne({
+      txHash,
+      walletAddress: { $regex: walletAddress, $options: 'i' },
+    });
 
-    if(txExist.length) {
-      throw new ConflictException("transaction already exists")
+    if (!transaction) {
+      throw new ConflictException("transaction doesn't exists");
     }
     const receipt =
       await this.ethersService.binanceProvider.getTransactionReceipt(txHash);
@@ -68,6 +83,10 @@ export class StakingService {
           isReferred: true,
           level: Number(parsedLog[3]),
           refId: Number(parsedLog[4]),
+          transactionStatus:
+            receipt.status === 1
+              ? TransactionStatusEnum.CONFIRMED
+              : TransactionStatusEnum.FAILED,
         };
 
         return formattedReferralLog;
@@ -76,18 +95,28 @@ export class StakingService {
       await this.StakingModel.insertMany(refStakedLogs);
     }
 
-    const createRecord = await this.StakingModel.create({
-      stakeId: Number(stakedLogs.args[5]),
-      walletAddress: stakedLogs.args[0],
-      amount: this.BigIntToNumber(stakedLogs.args[1]),
-      apr: Number(stakedLogs.args[2]) / 10,
-      poolType: Number(stakedLogs.args[3]),
-      startTime: Number(stakedLogs.args[4]),
-      stakeDuration: stakeDuration.duration,
-      txHash,
-      isReferred: false,
-    });
-    return { stake: createRecord };
+    const updateRecord = await this.StakingModel.findByIdAndUpdate(
+      transaction._id,
+      {
+        stakeId: Number(stakedLogs.args[5]),
+        walletAddress: stakedLogs.args[0],
+        amount: this.BigIntToNumber(stakedLogs.args[1]),
+        apr: Number(stakedLogs.args[2]) / 10,
+        poolType: Number(stakedLogs.args[3]),
+        startTime: Number(stakedLogs.args[4]),
+        stakeDuration: stakeDuration.duration,
+        txHash,
+        isReferred: false,
+        transactionStatus:
+          receipt.status === 1
+            ? TransactionStatusEnum.CONFIRMED
+            : TransactionStatusEnum.FAILED,
+      },
+      {
+        new: true,
+      },
+    );
+    return { stake: updateRecord };
   }
 
   async getAllStakesByUser(walletAddress: string) {
@@ -109,12 +138,12 @@ export class StakingService {
   }
 
   async createClaimedRewardForStake(txHash: string) {
-    console.log(txHash)
+    console.log(txHash);
     const txExist = await this.claimedRewardForStakeModel.find({
-      txHash:{$regex: txHash, $options: 'i'}
-    })
-    if(txExist.length) {
-      throw new ConflictException("transaction already exists")
+      txHash: { $regex: txHash, $options: 'i' },
+    });
+    if (txExist.length) {
+      throw new ConflictException('transaction already exists');
     }
     const receipt =
       await this.ethersService.binanceProvider.getTransactionReceipt(txHash);
@@ -135,7 +164,6 @@ export class StakingService {
         amount: this.BigIntToNumber(parsedLog[2]),
         timestamp: Number(parsedLog[3]),
         txHash,
-        
       };
 
       return formattedClaimedLog;
@@ -149,16 +177,21 @@ export class StakingService {
           log.isReferred = stake.isReferred;
         }
       } catch (error) {
-        console.error(`Error processing log with stakeId ${log.stakeId}:`, error);
+        console.error(
+          `Error processing log with stakeId ${log.stakeId}:`,
+          error,
+        );
       }
     }
     return this.claimedRewardForStakeModel.insertMany(claimedRewards);
   }
 
   async getAllClaimedRewardsByUser(walletAddress: string) {
-    const allStakedClaims = await this.claimedRewardForStakeModel.find({
-      walletAddress,
-    }).sort({'timestamp':-1});
+    const allStakedClaims = await this.claimedRewardForStakeModel
+      .find({
+        walletAddress,
+      })
+      .sort({ timestamp: -1 });
 
     return allStakedClaims.length ? allStakedClaims : [];
   }
@@ -167,7 +200,7 @@ export class StakingService {
     const referralStream = await this.StakingModel.find({
       isReferred: true,
       walletAddress,
-    }).sort({'startTime':-1});
+    }).sort({ startTime: -1 });
     const result = [];
 
     for (const referral of referralStream) {

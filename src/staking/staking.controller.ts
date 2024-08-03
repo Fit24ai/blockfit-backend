@@ -16,11 +16,24 @@ import { UserRequest } from 'src/types/user';
 export class StakingController {
   constructor(private readonly stakingService: StakingService) {}
 
+
+  @UseGuards(JwtAuthGuard)
   @Post('create/:txHash')
-  async createStakingRecord(@Param('txHash') txHash: string) {
-    return this.stakingService.createStakingRecord(txHash);
+  async createStake(
+    @Param('txHash') txHash: string,
+    @Request() req: UserRequest,
+  ) {
+    return this.stakingService.createStake(txHash,req.user.walletAddress);
   }
 
+
+  @UseGuards(JwtAuthGuard)
+  @Post('verify/:txHash')
+  async createStakingRecord(@Param('txHash') txHash: string,@Request() req: UserRequest,) {
+    return this.stakingService.verifyStakingRecord(txHash,req.user.walletAddress);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('get-all-Stakes-by-user/:walletAddress')
   async getAllStakesByUser(@Param('walletAddress') walletAddress: string) {
     return this.stakingService.getAllStakesByUser(walletAddress);
@@ -35,7 +48,7 @@ export class StakingController {
 
   @UseGuards(JwtAuthGuard)
   @Post('create-claimed-reward-for-stake/:txHash')
-  async createClaimedRewardForStake(@Param('txHash') txHash:string) {
+  async createClaimedRewardForStake(@Param('txHash') txHash: string) {
     return this.stakingService.createClaimedRewardForStake(txHash);
   }
 

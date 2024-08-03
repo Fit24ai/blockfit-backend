@@ -1,3 +1,5 @@
+import { TransactionStatusEnum } from "src/types/transaction";
+
 export interface IRefStakeLogs{
     stakeId: number;
     walletAddress: string;
@@ -10,6 +12,7 @@ export interface IRefStakeLogs{
     isReferred: boolean;
     level: number;
     refId: number;
+    transactionStatus:TransactionStatusEnum
 }
 
 export interface IClaimedRewardForStake{
