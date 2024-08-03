@@ -8,12 +8,14 @@ import { EthersModule } from 'src/ethers/ethers.module';
 import { EthersService } from 'src/ethers/ethers.service';
 import { TransferService } from 'src/transfer/transfer.service';
 import { TransferModule } from 'src/transfer/transfer.module';
+import { User, UserSchema } from 'src/users/schema/user.schema';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     MongooseModule.forFeature([
       { name: Transaction.name, schema: TransactionSchema },
+      { name: User.name, schema: UserSchema },
     ]),
     EthersModule,
     TransferModule,
