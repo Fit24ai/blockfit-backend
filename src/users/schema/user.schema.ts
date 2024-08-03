@@ -11,6 +11,9 @@ export class User {
   email: string;
   @Prop({ type: Number })
   number: number;
+
+  @Prop({ type: Types.ObjectId })
+  referredBy: Types.ObjectId;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

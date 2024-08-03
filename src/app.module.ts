@@ -17,6 +17,7 @@ import { TransferModule } from './transfer/transfer.module';
 import { ListsModule } from './lists/lists.module';
 import { RandomiserModule } from './randomiser/randomiser.module';
 import { StakingModule } from './staking/staking.module';
+import { ReferralModule } from './referral/referral.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { StakingModule } from './staking/staking.module';
     ListsModule,
     RandomiserModule,
     StakingModule,
+    ReferralModule
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy],

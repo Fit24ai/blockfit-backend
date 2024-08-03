@@ -9,6 +9,7 @@ import {
 import { WebhookService } from './webhook.service';
 import { PaymentReceivedDto } from './dto/paymentReceived.dto';
 import { ChainEnum } from 'src/types/transaction';
+import { ReferralReceivedDto } from './dto/referralReceived.dto';
 
 @Controller('webhook')
 export class WebhookController {
@@ -21,5 +22,14 @@ export class WebhookController {
   ) {
     console.log(data);
     return this.webhookService.paymentReceived(data[0], chain);
+  }
+
+  @Post('referral-received')
+  handleReferralWebhook(
+    @Body('data') data: ReferralReceivedDto[],
+    @Query('chain') chain: ChainEnum,
+  ) {
+    console.log(data);
+    return this.webhookService.referralReceived(data[0],chain);
   }
 }

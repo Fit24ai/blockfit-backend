@@ -20,11 +20,15 @@ import tokenAbi from 'src/ethers/libs/abi/tokenAbi';
 import { Transaction } from './schema/transaction.schema';
 import { TransferService } from 'src/transfer/transfer.service';
 import { User } from 'src/users/schema/user.schema';
+import { ReferralTransaction } from './schema/referralTransaction.schema';
+import { ReferralReceivedDto } from './dto/referralReceived.dto';
 
 @Injectable()
 export class WebhookService {
   constructor(
     @InjectModel(Transaction.name) private Transaction: Model<Transaction>,
+    @InjectModel(ReferralTransaction.name) private ReferralTransaction: Model<ReferralTransaction>,
+
     @InjectModel(User.name) private User: Model<User>,
     private readonly ethersService: EthersService,
     private readonly transferService: TransferService,
@@ -158,5 +162,29 @@ export class WebhookService {
 
     await transaction.save();
     return { message: 'Success' };
+  }
+
+  async referralReceived(referralReceived:ReferralReceivedDto,chain:ChainEnum){
+    const referralReceivedFormatted: ReferralReceivedDto = {
+      referrer: this.formatAddress(referralReceived.referrer),
+      buyer: this.formatAddress(referralReceived.buyer),
+      buyer_amount: referralReceived.buyer_amount,
+      referral_income: referralReceived.referral_income,
+      token: this.formatAddress(referralReceived.token),
+      transaction_hash: this.formatAddress(referralReceived.transaction_hash),
+      block_number: referralReceived.block_number,
+      block_timestamp: referralReceived.block_timestamp,
+    }
+
+    const referralTransaction = await this.ReferralTransaction.create({
+      ...referralReceivedFormatted,
+      buyAmount:referralReceivedFormatted.buyer_amount,
+      referralIncome: referralReceivedFormatted.referral_income,
+      transactionHash: referralReceivedFormatted.transaction_hash,
+      blockNumber: referralReceivedFormatted.block_number,
+      chain: chain
+    })
+
+    return { message: 'Success' }
   }
 }

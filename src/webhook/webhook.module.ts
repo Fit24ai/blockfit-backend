@@ -9,6 +9,7 @@ import { EthersService } from 'src/ethers/ethers.service';
 import { TransferService } from 'src/transfer/transfer.service';
 import { TransferModule } from 'src/transfer/transfer.module';
 import { User, UserSchema } from 'src/users/schema/user.schema';
+import { ReferralTransaction, ReferralTransactionSchema } from './schema/referralTransaction.schema';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { User, UserSchema } from 'src/users/schema/user.schema';
     MongooseModule.forFeature([
       { name: Transaction.name, schema: TransactionSchema },
       { name: User.name, schema: UserSchema },
+      {name:ReferralTransaction.name, schema: ReferralTransactionSchema}
     ]),
     EthersModule,
     TransferModule,
