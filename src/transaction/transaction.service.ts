@@ -31,7 +31,7 @@ export class TransactionService {
   async getAllTransactions(userId: ObjectId): Promise<Transaction[]> {
     return this.Transaction.find({
       user: userId,
-    });
+    }).sort({"createdAt":-1});
   }
 
   async updateTransaction(
