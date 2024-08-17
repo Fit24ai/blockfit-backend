@@ -54,6 +54,10 @@ export class StakingService {
     if (!transaction) {
       throw new ConflictException("transaction doesn't exists");
     }
+
+    if(transaction.stakeId !== 0){
+      throw new ConflictException("transaction already exists");
+    }
     const receipt =
       await this.ethersService.binanceProvider.getTransactionReceipt(txHash);
 
@@ -65,6 +69,9 @@ export class StakingService {
     const filteredLogs = receipt.logs.filter(
       (log) => log.topics[0] === process.env.REFERRAL_TOPIC,
     );
+
+    console.log("logs",filteredLogs)
+    console.log("staked logs",stakedLogs)
 
     const stakeDuration = await this.StakeDurationModel.findOne({
       poolType: Number(stakedLogs.args[3]),
