@@ -23,10 +23,10 @@ export class Staking {
   @Prop({ type: Number, required: true, default: 0 })
   poolType: number;
 
-  @Prop({ type: Number, required: true, default: () => Date.now() })
+  @Prop({ type: Number, required: true })
   startTime: number;
 
-  @Prop({ type: Number, required: true, default: () => Date.now() })
+  @Prop({ type: Number, required: true })
   stakeDuration: number;
 
   @Prop({ type: Boolean, required: false })

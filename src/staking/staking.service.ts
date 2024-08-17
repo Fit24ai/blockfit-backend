@@ -28,10 +28,18 @@ export class StakingService {
     return Number(value) / Math.pow(10, 18);
   }
 
-  async createStake(txHash: string, walletAddress: string) {
+  async createStake(txHash: string, walletAddress: string,poolType:number) {
+    const stakeDuration = await this.StakeDurationModel.findOne({
+      poolType,
+    });
+    if (!stakeDuration) {
+      throw new Error('Stake duration not found');
+    }
     const stake = await this.StakingModel.create({
       txHash: txHash,
       walletAddress,
+      startTime:Math.floor(Date.now() / 1000),
+      stakeDuration: stakeDuration.duration
     });
     return {
       message: 'Stake create successfully',

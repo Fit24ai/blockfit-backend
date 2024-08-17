@@ -22,8 +22,9 @@ export class StakingController {
   async createStake(
     @Param('txHash') txHash: string,
     @Request() req: UserRequest,
+    @Body('poolType') poolType:number
   ) {
-    return this.stakingService.createStake(txHash,req.user.walletAddress);
+    return this.stakingService.createStake(txHash,req.user.walletAddress,poolType);
   }
 
 
