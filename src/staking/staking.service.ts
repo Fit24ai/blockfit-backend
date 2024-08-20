@@ -29,12 +29,12 @@ export class StakingService {
   }
 
   async createStake(txHash: string, walletAddress: string,poolType:number) {
-    const isStakeExist = await this.StakingModel.find({
+    const isStakeExist = await this.StakingModel.findOne({
       txHash,
       walletAddress: { $regex: walletAddress, $options: 'i' },
     })
 
-    if(isStakeExist.length){
+    if(isStakeExist){
       throw new ConflictException('Transaction already exists');
     }
     const stakeDuration = await this.StakeDurationModel.findOne({
