@@ -7,14 +7,40 @@ import { InjectModel } from '@nestjs/mongoose';
 import { EthersService } from 'src/ethers/ethers.service';
 import { Staking } from './schema/staking.schema';
 import { Model } from 'mongoose';
-import { LogDescription } from 'ethers';
+import {
+  Contract,
+  formatUnits,
+  getAddress,
+  JsonRpcProvider,
+  LogDescription,
+  Wallet,
+} from 'ethers';
 import { StakeDuration } from './schema/stakeDuration.schema';
 import { ClaimedRewardForStakeHistory } from './schema/claimedRewardForStakeHistory.schema';
 import { IRefStakeLogs, IClaimedRewardForStake } from './types/logs';
 import { TransactionStatusEnum } from 'src/types/transaction';
+import { referralAbi } from './libs/referralAbi';
+import {
+  fit24ReferralContractAddress,
+  fit24StakingContractAddress,
+} from './libs/contract';
+import { stakingAbi } from './libs/stakingAbi';
 
 @Injectable()
 export class StakingService {
+  public readonly binanceProvider = new JsonRpcProvider(
+    process.env.BINANCE_PRC_PROVIDER,
+  );
+  public referralContract = new Contract(
+    fit24ReferralContractAddress,
+    referralAbi,
+    this.binanceProvider,
+  );
+  public stakingContract = new Contract(
+    fit24StakingContractAddress,
+    stakingAbi,
+    this.binanceProvider,
+  );
   constructor(
     private readonly ethersService: EthersService,
     @InjectModel(Staking.name) private StakingModel: Model<Staking>,
@@ -28,13 +54,13 @@ export class StakingService {
     return Number(value) / Math.pow(10, 18);
   }
 
-  async createStake(txHash: string, walletAddress: string,poolType:number) {
+  async createStake(txHash: string, walletAddress: string, poolType: number) {
     const isStakeExist = await this.StakingModel.findOne({
       txHash,
       walletAddress: { $regex: walletAddress, $options: 'i' },
-    })
+    });
 
-    if(isStakeExist){
+    if (isStakeExist) {
       throw new ConflictException('Transaction already exists');
     }
     const stakeDuration = await this.StakeDurationModel.findOne({
@@ -46,8 +72,8 @@ export class StakingService {
     const stake = await this.StakingModel.create({
       txHash: txHash,
       walletAddress,
-      startTime:Math.floor(Date.now() / 1000),
-      stakeDuration: stakeDuration.duration
+      startTime: Math.floor(Date.now() / 1000),
+      stakeDuration: stakeDuration.duration,
     });
     return {
       message: 'Stake create successfully',
@@ -63,8 +89,8 @@ export class StakingService {
       throw new ConflictException("transaction doesn't exists");
     }
 
-    if(transaction.stakeId !== 0){
-      throw new ConflictException("transaction already exists");
+    if (transaction.stakeId !== 0) {
+      throw new ConflictException('transaction already exists');
     }
     const receipt =
       await this.ethersService.binanceProvider.getTransactionReceipt(txHash);
@@ -78,8 +104,8 @@ export class StakingService {
       (log) => log.topics[0] === process.env.REFERRAL_TOPIC,
     );
 
-    console.log("logs",filteredLogs)
-    console.log("staked logs",stakedLogs)
+    console.log('logs', filteredLogs);
+    console.log('staked logs', stakedLogs);
 
     const stakeDuration = await this.StakeDurationModel.findOne({
       poolType: Number(stakedLogs.args[3]),
@@ -243,5 +269,380 @@ export class StakingService {
     }
 
     return result.length ? result : [];
+  }
+
+
+  // async getTotalMembers(
+  //   address: string,
+  //   checkedAddresses: Set<string> = new Set(),
+  // ): Promise<number> {
+  //   // console.log(address);
+  //   if (checkedAddresses.has(address)) {
+  //     return 0;
+  //   }
+  //   checkedAddresses.add(address);
+
+  //   try {
+  //     const directMembers = await this.referralContract.getAllRefrees(address);
+  //     let totalCount = directMembers.length;
+
+  //     for (const member of directMembers) {
+  //       totalCount += await this.getTotalMembers(member, checkedAddresses);
+  //     }
+
+  //     return totalCount;
+  //   } catch (error) {
+  //     console.error('Error fetching direct members:', error);
+  //     throw error;
+  //   }
+  // }
+  async getTotalMembersAndStaked(
+    address: string,
+    checkedAddresses: Set<string> = new Set(),
+  ): Promise<{ totalCount: number; totalTeamStakedAmount: number }> {
+    // Avoid recalculating for the same address
+    if (checkedAddresses.has(address)) {
+      return { totalCount: 0, totalTeamStakedAmount: 0 };
+    }
+  
+    // Mark this address as checked
+    checkedAddresses.add(address);
+  
+    try {
+      // Fetch direct members of the current address
+      const directMembers = await this.referralContract.getAllRefrees(address);
+      let totalCount = directMembers.length;
+      let totalTeamStakedAmount = 0;
+  
+      // Loop through each direct member
+      for (const member of directMembers) {
+        // Fetch and accumulate the staked amount for the member
+        const { tokens: memberStakedTokens } = await this.getUserTotalTokenStaked(member);
+        totalTeamStakedAmount += memberStakedTokens;
+  
+        // Recursively fetch the count and staked amounts for the member's team
+        const { totalCount: memberCount, totalTeamStakedAmount: memberTeamStaked } =
+          await this.getTotalMembersAndStaked(member, checkedAddresses);
+        
+        totalCount += memberCount;
+        totalTeamStakedAmount += memberTeamStaked;
+      }
+  
+      return { totalCount, totalTeamStakedAmount };
+    } catch (error) {
+      console.error('Error fetching direct members or staked amounts:', error);
+      throw error;
+    }
+  }
+  
+
+  async getUserTotalTokenStaked(walletAddress: string) {
+    const fixedAddress = getAddress(walletAddress);
+    const tokens =
+      await this.stakingContract.userTotalTokenStaked(fixedAddress);
+    return { tokens: Number(formatUnits(tokens, 18)) };
+  }
+
+  // async getAllLevelMembers(
+  //   address: string,
+  //   checkedAddresses: Set<string> = new Set(),
+  // ): Promise<{
+  //   totalCount: number;
+  //   zeroStakedCount: number;
+  //   stakedCount: number;
+  //   stakedData: any[]; // Collect and return staked data of members with staked tokens
+  // }> {
+  //   // If the address has already been checked, return 0 counts
+  //   if (checkedAddresses.has(address)) {
+  //     return {
+  //       totalCount: 0,
+  //       zeroStakedCount: 0,
+  //       stakedCount: 0,
+  //       stakedData: [], // Return empty staked data if address is already checked
+  //     };
+  //   }
+
+  //   // Mark the address as checked
+  //   checkedAddresses.add(address);
+
+  //   let zeroStakedCount = 0;
+  //   let stakedCount = 0;
+  //   let stakedData: any[] = []; // Initialize an array to collect staked data
+
+  //   try {
+  //     // Fetch the staking amount for the current address
+  //     const { tokens } = await this.getUserTotalTokenStaked(address);
+
+  //     // Determine if the current address has zero or some tokens staked
+  //     if (tokens === 0) {
+  //       zeroStakedCount = 1;
+  //     } else {
+  //       stakedCount = 1;
+  //       stakedData.push({ address, tokens }); // Collect staked data
+  //     }
+
+  //     // Fetch direct members (referrals)
+  //     const directMembers = await this.referralContract.getAllRefrees(address);
+  //     let totalCount = 1; // Start with 1 to count the current user
+
+  //     // Recursively count for all direct members
+  //     for (const member of directMembers) {
+  //       const memberResult = await this.getAllLevelMembers(
+  //         member,
+  //         checkedAddresses,
+  //       );
+
+  //       // Accumulate counts and staked data from recursive calls
+  //       totalCount += memberResult.totalCount;
+  //       zeroStakedCount += memberResult.zeroStakedCount;
+  //       stakedCount += memberResult.stakedCount;
+  //       stakedData = [...stakedData, ...memberResult.stakedData]; // Merge staked data
+  //     }
+
+  //     // Return the total count, zero/staked counts, and staked data
+  //     return {
+  //       totalCount,
+  //       zeroStakedCount,
+  //       stakedCount,
+  //       stakedData,
+  //     };
+  //   } catch (error) {
+  //     console.error('Error fetching direct members:', error);
+  //     throw error;
+  //   }
+  // }
+
+  // async getAllLevelMembers(
+  //   address: string,
+  //   targetLevel: number, // Level you want to retrieve data for
+  //   currentLevel: number = 1, // Track the current level, starting from 1
+  //   checkedAddresses: Set<string> = new Set(),
+  // ): Promise<{
+  //   totalCount: number;
+  //   zeroStakedCount: number;
+  //   stakedCount: number;
+  //   stakedData: any[]; // Collect and return staked data of members with staked tokens
+  // }> {
+  //   // If the address has already been checked, return 0 counts
+  //   if (checkedAddresses.has(address)) {
+  //     return {
+  //       totalCount: 0,
+  //       zeroStakedCount: 0,
+  //       stakedCount: 0,
+  //       stakedData: [],
+  //     };
+  //   }
+  
+  //   // Mark the address as checked
+  //   checkedAddresses.add(address);
+  
+  //   let zeroStakedCount = 0;
+  //   let stakedCount = 0;
+  //   let stakedData: any[] = [];
+  //   let totalCount = 0;
+  
+  //   try {
+  //     // Fetch direct members (referrals)
+  //     const directMembers = await this.referralContract.getAllRefrees(address);
+  
+  //     if (currentLevel === targetLevel) {
+  //       // If at the target level, gather data for these members
+  //       for (const member of directMembers) {
+  //         const { tokens } = await this.getUserTotalTokenStaked(member);
+  
+  //         // Determine if the member has zero or some tokens staked
+  //         if (tokens === 0) {
+  //           zeroStakedCount += 1;
+  //         } else {
+  //           stakedCount += 1;
+  //           stakedData.push({ address: member, tokens });
+  //         }
+  
+  //         totalCount += 1; // Count the member at the target level
+  //       }
+  //     } else {
+  //       // If not at the target level, recurse to the next level
+  //       for (const member of directMembers) {
+  //         const memberResult = await this.getAllLevelMembers(
+  //           member,
+  //           targetLevel,
+  //           currentLevel + 1, // Move to the next level
+  //           checkedAddresses
+  //         );
+  
+  //         // Accumulate the results from recursive calls
+  //         totalCount += memberResult.totalCount;
+  //         zeroStakedCount += memberResult.zeroStakedCount;
+  //         stakedCount += memberResult.stakedCount;
+  //         stakedData = [...stakedData, ...memberResult.stakedData];
+  //       }
+  //     }
+  
+  //     // Return the counts and staked data for the specified level
+  //     return {
+  //       totalCount,
+  //       zeroStakedCount,
+  //       stakedCount,
+  //       stakedData,
+  //     };
+  //   } catch (error) {
+  //     console.error('Error fetching direct members or staked amounts:', error);
+  //     throw error;
+  //   }
+  // }
+
+  async getAllLevelMembers(
+    address: string,
+    targetLevel: number, // Level you want to retrieve data for
+    currentLevel: number = 1, // Track the current level, starting from 1
+    checkedAddresses: Set<string> = new Set(),
+  ): Promise<{
+    totalCount: number;
+    zeroStakedCount: number;
+    stakedCount: number;
+    stakedData: any[]; // Collect and return staked data of members with staked tokens
+    totalStakedAmount: number; // Add this to return the total staked amount
+  }> {
+    // If the address has already been checked, return 0 counts
+    if (checkedAddresses.has(address)) {
+      return {
+        totalCount: 0,
+        zeroStakedCount: 0,
+        stakedCount: 0,
+        stakedData: [],
+        totalStakedAmount: 0, // Initialize totalStakedAmount
+      };
+    }
+  
+    // Mark the address as checked
+    checkedAddresses.add(address);
+  
+    let zeroStakedCount = 0;
+    let stakedCount = 0;
+    let totalStakedAmount = 0; // Initialize totalStakedAmount
+    let stakedData: any[] = [];
+    let totalCount = 0;
+  
+    try {
+      // Fetch direct members (referrals)
+      const directMembers = await this.referralContract.getAllRefrees(address);
+  
+      if (currentLevel === targetLevel) {
+        // If at the target level, gather data for these members
+        for (const member of directMembers) {
+          const { tokens } = await this.getUserTotalTokenStaked(member);
+  
+          // Determine if the member has zero or some tokens staked
+          if (tokens === 0) {
+            zeroStakedCount += 1;
+          } else {
+            stakedCount += 1;
+            stakedData.push({ address: member, tokens });
+            totalStakedAmount += tokens; // Accumulate the total staked amount
+          }
+  
+          totalCount += 1; // Count the member at the target level
+        }
+      } else {
+        // If not at the target level, recurse to the next level
+        for (const member of directMembers) {
+          const memberResult = await this.getAllLevelMembers(
+            member,
+            targetLevel,
+            currentLevel + 1, // Move to the next level
+            checkedAddresses
+          );
+  
+          // Accumulate the results from recursive calls
+          totalCount += memberResult.totalCount;
+          zeroStakedCount += memberResult.zeroStakedCount;
+          stakedCount += memberResult.stakedCount;
+          stakedData = [...stakedData, ...memberResult.stakedData];
+          totalStakedAmount += memberResult.totalStakedAmount; // Accumulate total staked amount
+        }
+      }
+  
+      // Return the counts, staked data, and total staked amount for the specified level
+      return {
+        totalCount,
+        zeroStakedCount,
+        stakedCount,
+        stakedData,
+        totalStakedAmount, // Include totalStakedAmount in the return
+      };
+    } catch (error) {
+      console.error('Error fetching direct members or staked amounts:', error);
+      throw error;
+    }
+  }
+
+  
+
+  async getUserLevel(
+    address: string,
+    checkedAddresses: Set<string> = new Set(),
+  ): Promise<number> {
+    // If the address has already been checked, return level 0
+    if (checkedAddresses.has(address)) {
+      return 0;
+    }
+
+    // Mark the address as checked
+    checkedAddresses.add(address);
+
+    try {
+      // Fetch direct members (referrals)
+      const directMembers = await this.referralContract.getAllRefrees(address);
+
+      if (directMembers.length === 0) {
+        // If no direct members, the level is 0
+        return 0;
+      }
+
+      // Start with level 1 if there are direct members
+      let maxLevel = 1;
+
+      // Recursively determine the level of each direct member
+      for (const member of directMembers) {
+        const memberLevel = await this.getUserLevel(member, checkedAddresses);
+        maxLevel = Math.max(maxLevel, memberLevel + 1);
+      }
+
+      // Return the maximum level found
+      return maxLevel;
+    } catch (error) {
+      console.error('Error fetching direct members:', error);
+      throw error;
+    }
+  }
+
+  // Example usage
+  // async calculateAllStakes(address: string) {
+  //   const result = await this.getAllLevelMembers(address);
+
+  //   console.log(`Total members: ${result.totalCount}`);
+  //   console.log(`Members with zero staked: ${result.zeroStakedCount}`);
+  //   console.log(`Members with staked tokens: ${result.stakedCount}`);
+  //   console.log(
+  //     `Staked data of members with staked tokens:`,
+  //     result.stakedData,
+  //   );
+  // }
+
+
+  // Example usage
+  // async calculateMemberStakes(address: string) {
+  //   const result = await this.getAllLevelMembers(address);
+
+  //   console.log(`Total members: ${result.totalCount}`);
+  //   console.log(`Members with zero staked: ${result.zeroStakedCount}`);
+  //   console.log(`Members with staked tokens: ${result.stakedCount}`);
+  // }
+
+
+  async getRefrees(address: string) {
+    console.log(address);
+    const directMembers = await this.referralContract.getAllRefrees(address);
+    console.log(directMembers);
   }
 }

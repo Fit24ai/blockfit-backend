@@ -16,22 +16,30 @@ import { UserRequest } from 'src/types/user';
 export class StakingController {
   constructor(private readonly stakingService: StakingService) {}
 
-
   @UseGuards(JwtAuthGuard)
   @Post('create/:txHash')
   async createStake(
     @Param('txHash') txHash: string,
     @Request() req: UserRequest,
-    @Body('poolType') poolType:number
+    @Body('poolType') poolType: number,
   ) {
-    return this.stakingService.createStake(txHash,req.user.walletAddress,poolType);
+    return this.stakingService.createStake(
+      txHash,
+      req.user.walletAddress,
+      poolType,
+    );
   }
-
 
   @UseGuards(JwtAuthGuard)
   @Post('verify/:txHash')
-  async createStakingRecord(@Param('txHash') txHash: string,@Request() req: UserRequest,) {
-    return this.stakingService.verifyStakingRecord(txHash,req.user.walletAddress);
+  async createStakingRecord(
+    @Param('txHash') txHash: string,
+    @Request() req: UserRequest,
+  ) {
+    return this.stakingService.verifyStakingRecord(
+      txHash,
+      req.user.walletAddress,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -65,5 +73,33 @@ export class StakingController {
   @Get('get-referral-stream')
   async getReferralStream(@Request() req: UserRequest) {
     return this.stakingService.getReferralStream(req.user.walletAddress);
+  }
+  @Get('get-user-staked-tokens')
+  // @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  async getUserTotalStaked(@Request() req: UserRequest) {
+    return this.stakingService.getUserTotalTokenStaked(req.user.walletAddress);
+  }
+
+  @Get('get-total-members')
+  @UseGuards(JwtAuthGuard)
+  async getTotalMembers(@Request() req: UserRequest) {
+    return this.stakingService.getTotalMembersAndStaked(req.user.walletAddress);
+  }
+  @Get('get-user-level')
+  @UseGuards(JwtAuthGuard)
+  async getUserLevel(@Request() req: UserRequest) {
+    return this.stakingService.getUserLevel(req.user.walletAddress);
+  }
+  @Post('get-direct-members-data')
+  @UseGuards(JwtAuthGuard)
+  async getAllMembersData(
+    @Request() req: UserRequest,
+    @Body() body: { level: number },
+  ) {
+    return this.stakingService.getAllLevelMembers(
+      req.user.walletAddress,
+      body.level,
+    );
   }
 }

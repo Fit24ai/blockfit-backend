@@ -18,6 +18,7 @@ import { ListsModule } from './lists/lists.module';
 import { RandomiserModule } from './randomiser/randomiser.module';
 import { StakingModule } from './staking/staking.module';
 import { ReferralModule } from './referral/referral.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -54,7 +55,8 @@ import { ReferralModule } from './referral/referral.module';
     ListsModule,
     RandomiserModule,
     StakingModule,
-    ReferralModule
+    ReferralModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy],

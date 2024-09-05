@@ -13,10 +13,9 @@ import { SentryExceptionFilter } from './utils/sentry-exception-handler';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     cors: {
-      origin: ['https://app.fit24.live','http://localhost:3000','https://fit24-web-nextjs-ui-rb-pwz2.vercel.app'],
+      origin: '*',
     },
   });
-
 
   const config = new DocumentBuilder()
     .setTitle('Fit24 API Reference')
