@@ -658,22 +658,51 @@ export class StakingService {
   async getDirectMemberswithStakedTokens(address: string) {
     let levelCount = 0;
     let memberData = [];
+  
     try {
+      // Get user's own staked tokens
+      const userTokens = await this.getUserTotalTokenStaked(address);
+  
+      // Calculate additional levels based on staked tokens, capped at 24
+      if (userTokens.tokens > 12500) {
+        const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
+        levelCount += additionalLevels;
+      }
+  
+      // Cap the levelCount at 24 levels
+      if (levelCount > 24) {
+        levelCount = 24;
+      }
+  
+      // Fetch direct members
       const directMembers = await this.referralContract.getAllRefrees(address);
+  
       for (const member of directMembers) {
+        // Get staked tokens for each direct member
         const tokens = await this.getUserTotalTokenStaked(member);
+  
+        // If member's staked tokens are greater than 0, count them
         if (tokens.tokens > 0) {
+          // Add 1 level for each direct member with staked tokens
           levelCount += 1;
           memberData.push({ address: member, tokens: tokens.tokens });
+  
+          // Ensure that levelCount does not exceed 24
+          if (levelCount >= 24) {
+            levelCount = 24;
+            break; // Stop adding more levels once we hit 24
+          }
         }
       }
+  
       return { levelCount, memberData };
+  
     } catch (error) {
       console.error('Error fetching level:', error);
       throw error;
     }
   }
-
+  
   async getTotalNetworkMembers() {
     let totalStakedMembers = 0;
     let stakedMemberData = [];
