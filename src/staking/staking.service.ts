@@ -271,7 +271,6 @@ export class StakingService {
     return result.length ? result : [];
   }
 
-
   // async getTotalMembers(
   //   address: string,
   //   checkedAddresses: Set<string> = new Set(),
@@ -299,42 +298,69 @@ export class StakingService {
   async getTotalMembersAndStaked(
     address: string,
     checkedAddresses: Set<string> = new Set(),
-  ): Promise<{ totalCount: number; totalTeamStakedAmount: number }> {
+  ): Promise<{
+    totalCount: number;
+    totalTeamStakedAmount: number;
+    stakersWithMoreThanZeroTokens: string[]; // Members with staked tokens > 0
+    stakerCount: number; // Count of members with staked tokens > 0
+  }> {
     // Avoid recalculating for the same address
     if (checkedAddresses.has(address)) {
-      return { totalCount: 0, totalTeamStakedAmount: 0 };
+      return {
+        totalCount: 0,
+        totalTeamStakedAmount: 0,
+        stakersWithMoreThanZeroTokens: [],
+        stakerCount: 0,
+      };
     }
-  
+
     // Mark this address as checked
     checkedAddresses.add(address);
-  
+
     try {
       // Fetch direct members of the current address
       const directMembers = await this.referralContract.getAllRefrees(address);
       let totalCount = directMembers.length;
       let totalTeamStakedAmount = 0;
-  
+      let stakersWithMoreThanZeroTokens: string[] = [];
+
       // Loop through each direct member
       for (const member of directMembers) {
         // Fetch and accumulate the staked amount for the member
-        const { tokens: memberStakedTokens } = await this.getUserTotalTokenStaked(member);
-        totalTeamStakedAmount += memberStakedTokens;
-  
+        const { tokens: memberStakedTokens } =
+          await this.getUserTotalTokenStaked(member);
+
+        // Check if the member has staked more than 0 tokens
+        if (memberStakedTokens > 0) {
+          totalTeamStakedAmount += memberStakedTokens;
+          stakersWithMoreThanZeroTokens.push(member); // Add member with staked tokens > 0
+        }
+
         // Recursively fetch the count and staked amounts for the member's team
-        const { totalCount: memberCount, totalTeamStakedAmount: memberTeamStaked } =
-          await this.getTotalMembersAndStaked(member, checkedAddresses);
-        
+        const {
+          totalCount: memberCount,
+          totalTeamStakedAmount: memberTeamStaked,
+          stakersWithMoreThanZeroTokens: memberStakers,
+          stakerCount: memberStakerCount,
+        } = await this.getTotalMembersAndStaked(member, checkedAddresses);
+
         totalCount += memberCount;
         totalTeamStakedAmount += memberTeamStaked;
+        stakersWithMoreThanZeroTokens =
+          stakersWithMoreThanZeroTokens.concat(memberStakers); // Merge nested stakers
       }
-  
-      return { totalCount, totalTeamStakedAmount };
+
+      return {
+        totalCount,
+        totalTeamStakedAmount,
+        stakersWithMoreThanZeroTokens,
+        stakerCount: stakersWithMoreThanZeroTokens.length, // Count of members with staked tokens > 0
+      };
     } catch (error) {
-      console.error('Error fetching direct members or staked amounts:', error);
+      console.error('Error fetching members or staked amounts:', error);
       throw error;
     }
   }
-  
 
   async getUserTotalTokenStaked(walletAddress: string) {
     const fixedAddress = getAddress(walletAddress);
@@ -432,24 +458,24 @@ export class StakingService {
   //       stakedData: [],
   //     };
   //   }
-  
+
   //   // Mark the address as checked
   //   checkedAddresses.add(address);
-  
+
   //   let zeroStakedCount = 0;
   //   let stakedCount = 0;
   //   let stakedData: any[] = [];
   //   let totalCount = 0;
-  
+
   //   try {
   //     // Fetch direct members (referrals)
   //     const directMembers = await this.referralContract.getAllRefrees(address);
-  
+
   //     if (currentLevel === targetLevel) {
   //       // If at the target level, gather data for these members
   //       for (const member of directMembers) {
   //         const { tokens } = await this.getUserTotalTokenStaked(member);
-  
+
   //         // Determine if the member has zero or some tokens staked
   //         if (tokens === 0) {
   //           zeroStakedCount += 1;
@@ -457,7 +483,7 @@ export class StakingService {
   //           stakedCount += 1;
   //           stakedData.push({ address: member, tokens });
   //         }
-  
+
   //         totalCount += 1; // Count the member at the target level
   //       }
   //     } else {
@@ -469,7 +495,7 @@ export class StakingService {
   //           currentLevel + 1, // Move to the next level
   //           checkedAddresses
   //         );
-  
+
   //         // Accumulate the results from recursive calls
   //         totalCount += memberResult.totalCount;
   //         zeroStakedCount += memberResult.zeroStakedCount;
@@ -477,7 +503,7 @@ export class StakingService {
   //         stakedData = [...stakedData, ...memberResult.stakedData];
   //       }
   //     }
-  
+
   //     // Return the counts and staked data for the specified level
   //     return {
   //       totalCount,
@@ -493,67 +519,61 @@ export class StakingService {
 
   async getAllLevelMembers(
     address: string,
-    targetLevel: number, // Level you want to retrieve data for
-    currentLevel: number = 1, // Track the current level, starting from 1
+    targetLevel: number,
+    currentLevel: number = 1,
     checkedAddresses: Set<string> = new Set(),
   ): Promise<{
     totalCount: number;
     zeroStakedCount: number;
     stakedCount: number;
-    stakedData: any[]; // Collect and return staked data of members with staked tokens
-    totalStakedAmount: number; // Add this to return the total staked amount
+    stakedData: any[];
+    totalStakedAmount: number;
   }> {
-    // If the address has already been checked, return 0 counts
     if (checkedAddresses.has(address)) {
       return {
         totalCount: 0,
         zeroStakedCount: 0,
         stakedCount: 0,
         stakedData: [],
-        totalStakedAmount: 0, // Initialize totalStakedAmount
+        totalStakedAmount: 0,
       };
     }
-  
+
     // Mark the address as checked
     checkedAddresses.add(address);
-  
+
     let zeroStakedCount = 0;
     let stakedCount = 0;
-    let totalStakedAmount = 0; // Initialize totalStakedAmount
+    let totalStakedAmount = 0;
     let stakedData: any[] = [];
     let totalCount = 0;
-  
+
     try {
-      // Fetch direct members (referrals)
       const directMembers = await this.referralContract.getAllRefrees(address);
-  
+
       if (currentLevel === targetLevel) {
-        // If at the target level, gather data for these members
         for (const member of directMembers) {
           const { tokens } = await this.getUserTotalTokenStaked(member);
-  
-          // Determine if the member has zero or some tokens staked
+
           if (tokens === 0) {
             zeroStakedCount += 1;
           } else {
             stakedCount += 1;
             stakedData.push({ address: member, tokens });
-            totalStakedAmount += tokens; // Accumulate the total staked amount
+            totalStakedAmount += tokens;
           }
-  
-          totalCount += 1; // Count the member at the target level
+
+          totalCount += 1;
         }
       } else {
-        // If not at the target level, recurse to the next level
         for (const member of directMembers) {
           const memberResult = await this.getAllLevelMembers(
             member,
             targetLevel,
-            currentLevel + 1, // Move to the next level
-            checkedAddresses
+            currentLevel + 1,
+            checkedAddresses,
           );
-  
-          // Accumulate the results from recursive calls
+
           totalCount += memberResult.totalCount;
           zeroStakedCount += memberResult.zeroStakedCount;
           stakedCount += memberResult.stakedCount;
@@ -561,22 +581,19 @@ export class StakingService {
           totalStakedAmount += memberResult.totalStakedAmount; // Accumulate total staked amount
         }
       }
-  
-      // Return the counts, staked data, and total staked amount for the specified level
+
       return {
         totalCount,
         zeroStakedCount,
         stakedCount,
         stakedData,
-        totalStakedAmount, // Include totalStakedAmount in the return
+        totalStakedAmount,
       };
     } catch (error) {
       console.error('Error fetching direct members or staked amounts:', error);
       throw error;
     }
   }
-
-  
 
   async getUserLevel(
     address: string,
@@ -629,7 +646,6 @@ export class StakingService {
   //   );
   // }
 
-
   // Example usage
   // async calculateMemberStakes(address: string) {
   //   const result = await this.getAllLevelMembers(address);
@@ -639,6 +655,56 @@ export class StakingService {
   //   console.log(`Members with staked tokens: ${result.stakedCount}`);
   // }
 
+  async getDirectMemberswithStakedTokens(address: string) {
+    let levelCount = 0;
+    let memberData = [];
+    try {
+      const directMembers = await this.referralContract.getAllRefrees(address);
+      for (const member of directMembers) {
+        const tokens = await this.getUserTotalTokenStaked(member);
+        if (tokens.tokens > 0) {
+          levelCount += 1;
+          memberData.push({ address: member, tokens: tokens.tokens });
+        }
+      }
+      return { levelCount, memberData };
+    } catch (error) {
+      console.error('Error fetching level:', error);
+      throw error;
+    }
+  }
+
+  async getTotalNetworkMembers() {
+    let totalStakedMembers = 0;
+    let stakedMemberData = [];
+    try {
+      const members = await this.stakingContract.getAllUsers();
+      for (const member of members) {
+        const tokens = await this.getUserTotalTokenStaked(member);
+        if (tokens.tokens > 0) {
+          totalStakedMembers += 1;
+          stakedMemberData.push({ address: member, tokens: tokens.tokens });
+        }
+      }
+      return {
+        totalStakedMembers,
+        stakedMemberData,
+        members,
+        totalMembers: members.length,
+      };
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async getTotalNetworkStaked() {
+    const tokens = await this.stakingContract.totalStakedTokens();
+    return Number(formatUnits(tokens, 18));
+  }
+  async getTotalNetworkWithdrawals() {
+    const tokens = await this.stakingContract.totalWithdrawnTokens();
+    return Number(formatUnits(tokens, 18));
+  }
 
   async getRefrees(address: string) {
     console.log(address);

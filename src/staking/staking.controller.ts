@@ -89,7 +89,9 @@ export class StakingController {
   @Get('get-user-level')
   @UseGuards(JwtAuthGuard)
   async getUserLevel(@Request() req: UserRequest) {
-    return this.stakingService.getUserLevel(req.user.walletAddress);
+    return this.stakingService.getDirectMemberswithStakedTokens(
+      req.user.walletAddress,
+    );
   }
   @Post('get-direct-members-data')
   @UseGuards(JwtAuthGuard)
@@ -101,5 +103,18 @@ export class StakingController {
       req.user.walletAddress,
       body.level,
     );
+  }
+
+  @Get('get-total-network-members')
+  async getTotalNetworkMembers() {
+    return this.stakingService.getTotalNetworkMembers();
+  }
+  @Get('get-total-network-staked')
+  async getTotalNetworkStaked() {
+    return this.stakingService.getTotalNetworkStaked();
+  }
+  @Get('get-total-network-withdrawal')
+  async getTotalNetworkWithdrawal() {
+    return this.stakingService.getTotalNetworkWithdrawals();
   }
 }
