@@ -80,6 +80,7 @@ export class StakingService {
     };
   }
   async verifyStakingRecord(txHash: string, walletAddress: string) {
+    console.log('verify');
     const transaction = await this.StakingModel.findOne({
       txHash,
       walletAddress: { $regex: walletAddress, $options: 'i' },
@@ -197,9 +198,14 @@ export class StakingService {
     const receipt =
       await this.ethersService.binanceProvider.getTransactionReceipt(txHash);
 
+      // console.log(receipt.logs)
+
     const filteredLogs = receipt.logs.filter(
       (log) => log.topics[0] === process.env.REWARD_CLAIMED_TOPIC,
     );
+
+    console.log(filteredLogs)
+
 
     if (!filteredLogs.length) {
       throw new NotFoundException('No Reward found');
@@ -207,6 +213,8 @@ export class StakingService {
 
     const claimedRewards: IClaimedRewardForStake[] = filteredLogs.map((log) => {
       const parsedLog = this.ethersService.stakingInterface.parseLog(log).args;
+      console.log(log)
+      console.log("parsed",parsedLog)
       const formattedClaimedLog: IClaimedRewardForStake = {
         stakeId: Number(parsedLog[0]),
         walletAddress: parsedLog[1],
@@ -215,8 +223,12 @@ export class StakingService {
         txHash,
       };
 
+      console.log(formattedClaimedLog)
+
       return formattedClaimedLog;
     });
+
+    console.log(claimedRewards)
 
     for (const log of claimedRewards) {
       try {
@@ -232,6 +244,7 @@ export class StakingService {
         );
       }
     }
+    console.log(claimedRewards)
     return this.claimedRewardForStakeModel.insertMany(claimedRewards);
   }
 
@@ -252,10 +265,14 @@ export class StakingService {
     }).sort({ startTime: -1 });
     const result = [];
 
+    // console.log(referralStream);
+
     for (const referral of referralStream) {
       const referredUser = await this.StakingModel.findOne({
         stakeId: referral.refId,
       }).exec();
+
+      // console.log(referredUser)
 
       if (referredUser) {
         result.push({
@@ -658,35 +675,35 @@ export class StakingService {
   async getDirectMemberswithStakedTokens(address: string) {
     let levelCount = 0;
     let memberData = [];
-  
+
     try {
       // Get user's own staked tokens
       const userTokens = await this.getUserTotalTokenStaked(address);
-  
+
       // Calculate additional levels based on staked tokens, capped at 24
       if (userTokens.tokens > 12500) {
         const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
         levelCount += additionalLevels;
       }
-  
+
       // Cap the levelCount at 24 levels
       if (levelCount > 24) {
         levelCount = 24;
       }
-  
+
       // Fetch direct members
       const directMembers = await this.referralContract.getAllRefrees(address);
-  
+
       for (const member of directMembers) {
         // Get staked tokens for each direct member
         const tokens = await this.getUserTotalTokenStaked(member);
-  
+
         // If member's staked tokens are greater than 0, count them
         if (tokens.tokens > 0) {
           // Add 1 level for each direct member with staked tokens
           levelCount += 1;
           memberData.push({ address: member, tokens: tokens.tokens });
-  
+
           // Ensure that levelCount does not exceed 24
           if (levelCount >= 24) {
             levelCount = 24;
@@ -694,15 +711,14 @@ export class StakingService {
           }
         }
       }
-  
+
       return { levelCount, memberData };
-  
     } catch (error) {
       console.error('Error fetching level:', error);
       throw error;
     }
   }
-  
+
   async getTotalNetworkMembers() {
     let totalStakedMembers = 0;
     let stakedMemberData = [];
@@ -731,8 +747,14 @@ export class StakingService {
     return Number(formatUnits(tokens, 18));
   }
   async getTotalNetworkWithdrawals() {
-    const tokens = await this.stakingContract.totalWithdrawnTokens();
-    return Number(formatUnits(tokens, 18));
+    try {
+      const tokens = await this.stakingContract.totalWithdrawnTokens();
+      console.log(tokens)
+      return Number(formatUnits(tokens, 18));
+      
+    } catch (error) {
+      console.log(error)
+    }
   }
 
   async getRefrees(address: string) {
