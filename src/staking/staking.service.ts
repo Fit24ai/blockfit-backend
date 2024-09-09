@@ -25,6 +25,7 @@ import {
   fit24StakingContractAddress,
 } from './libs/contract';
 import { stakingAbi } from './libs/stakingAbi';
+import { ClaimedHistory } from './schema/claimedHistory.schema';
 
 @Injectable()
 export class StakingService {
@@ -48,6 +49,8 @@ export class StakingService {
     private StakeDurationModel: Model<StakeDuration>,
     @InjectModel(ClaimedRewardForStakeHistory.name)
     private claimedRewardForStakeModel: Model<ClaimedRewardForStakeHistory>,
+    @InjectModel(ClaimedHistory.name)
+    private claimedHistotyModel: Model<ClaimedHistory>,
   ) {}
 
   private BigIntToNumber(value: BigInt) {
@@ -216,10 +219,10 @@ export class StakingService {
       console.log(log)
       console.log("parsed",parsedLog)
       const formattedClaimedLog: IClaimedRewardForStake = {
-        stakeId: Number(parsedLog[0]),
-        walletAddress: parsedLog[1],
-        amount: this.BigIntToNumber(parsedLog[2]),
-        timestamp: Number(parsedLog[3]),
+        // stakeId: Number(parsedLog[0]),
+        walletAddress: parsedLog[0],
+        amount: this.BigIntToNumber(parsedLog[1]),
+        timestamp: Number(parsedLog[2]),
         txHash,
       };
 
@@ -230,26 +233,84 @@ export class StakingService {
 
     console.log(claimedRewards)
 
-    for (const log of claimedRewards) {
-      try {
-        const stake = await this.StakingModel.findOne({ stakeId: log.stakeId });
-        if (stake) {
-          log.poolType = stake.poolType;
-          log.isReferred = stake.isReferred;
-        }
-      } catch (error) {
-        console.error(
-          `Error processing log with stakeId ${log.stakeId}:`,
-          error,
-        );
-      }
-    }
+    // for (const log of claimedRewards) {
+    //   try {
+    //     const stake = await this.StakingModel.findOne({ stakeId: log.stakeId });
+    //     if (stake) {
+    //       log.poolType = stake.poolType;
+    //       log.isReferred = stake.isReferred;
+    //     }
+    //   } catch (error) {
+    //     console.error(
+    //       `Error processing log with stakeId ${log.stakeId}:`,
+    //       error,
+    //     );
+    //   }
+    // }
     console.log(claimedRewards)
-    return this.claimedRewardForStakeModel.insertMany(claimedRewards);
+    return this.claimedHistotyModel.insertMany(claimedRewards);
+    // console.log(txHash);
+    // const txExist = await this.claimedRewardForStakeModel.find({
+    //   txHash: { $regex: txHash, $options: 'i' },
+    // });
+    // if (txExist.length) {
+    //   throw new ConflictException('transaction already exists');
+    // }
+    // const receipt =
+    //   await this.ethersService.binanceProvider.getTransactionReceipt(txHash);
+
+    //   // console.log(receipt.logs)
+
+    // const filteredLogs = receipt.logs.filter(
+    //   (log) => log.topics[0] === process.env.REWARD_CLAIMED_TOPIC,
+    // );
+
+    // console.log(filteredLogs)
+
+
+    // if (!filteredLogs.length) {
+    //   throw new NotFoundException('No Reward found');
+    // }
+
+    // const claimedRewards: IClaimedRewardForStake[] = filteredLogs.map((log) => {
+    //   const parsedLog = this.ethersService.stakingInterface.parseLog(log).args;
+    //   console.log(log)
+    //   console.log("parsed",parsedLog)
+    //   const formattedClaimedLog: IClaimedRewardForStake = {
+    //     // stakeId: Number(parsedLog[0]),
+    //     walletAddress: parsedLog[0],
+    //     amount: this.BigIntToNumber(parsedLog[1]),
+    //     timestamp: Number(parsedLog[2]),
+    //     txHash,
+    //   };
+
+    //   console.log(formattedClaimedLog)
+
+    //   return formattedClaimedLog;
+    // });
+
+    // console.log(claimedRewards)
+
+    // // for (const log of claimedRewards) {
+    // //   try {
+    // //     const stake = await this.StakingModel.findOne({ stakeId: log.stakeId });
+    // //     if (stake) {
+    // //       log.poolType = stake.poolType;
+    // //       log.isReferred = stake.isReferred;
+    // //     }
+    // //   } catch (error) {
+    // //     console.error(
+    // //       `Error processing log with stakeId ${log.stakeId}:`,
+    // //       error,
+    // //     );
+    // //   }
+    // // }
+    // console.log(claimedRewards)
+    // return this.claimedRewardForStakeModel.insertMany(claimedRewards);
   }
 
   async getAllClaimedRewardsByUser(walletAddress: string) {
-    const allStakedClaims = await this.claimedRewardForStakeModel
+    const allStakedClaims = await this.claimedHistotyModel
       .find({
         walletAddress,
       })

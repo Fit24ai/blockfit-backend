@@ -13,6 +13,10 @@ import {
   ClaimedRewardForStakeHistory,
   ClaimedRewardForStakeHistorySchema,
 } from './schema/claimedRewardForStakeHistory.schema';
+import {
+  ClaimedHistory,
+  ClaimedHistorySchema,
+} from './schema/claimedHistory.schema';
 
 @Module({
   imports: [
@@ -23,6 +27,10 @@ import {
       {
         name: ClaimedRewardForStakeHistory.name,
         schema: ClaimedRewardForStakeHistorySchema,
+      },
+      {
+        name: ClaimedHistory.name,
+        schema: ClaimedHistorySchema,
       },
     ]),
   ],
