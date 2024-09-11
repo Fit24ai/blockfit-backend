@@ -201,14 +201,13 @@ export class StakingService {
     const receipt =
       await this.ethersService.binanceProvider.getTransactionReceipt(txHash);
 
-      // console.log(receipt.logs)
+    // console.log(receipt.logs)
 
     const filteredLogs = receipt.logs.filter(
       (log) => log.topics[0] === process.env.REWARD_CLAIMED_TOPIC,
     );
 
-    console.log(filteredLogs)
-
+    console.log(filteredLogs);
 
     if (!filteredLogs.length) {
       throw new NotFoundException('No Reward found');
@@ -216,8 +215,8 @@ export class StakingService {
 
     const claimedRewards: IClaimedRewardForStake[] = filteredLogs.map((log) => {
       const parsedLog = this.ethersService.stakingInterface.parseLog(log).args;
-      console.log(log)
-      console.log("parsed",parsedLog)
+      console.log(log);
+      console.log('parsed', parsedLog);
       const formattedClaimedLog: IClaimedRewardForStake = {
         // stakeId: Number(parsedLog[0]),
         walletAddress: parsedLog[0],
@@ -226,12 +225,12 @@ export class StakingService {
         txHash,
       };
 
-      console.log(formattedClaimedLog)
+      console.log(formattedClaimedLog);
 
       return formattedClaimedLog;
     });
 
-    console.log(claimedRewards)
+    console.log(claimedRewards);
 
     // for (const log of claimedRewards) {
     //   try {
@@ -247,7 +246,7 @@ export class StakingService {
     //     );
     //   }
     // }
-    console.log(claimedRewards)
+    console.log(claimedRewards);
     return this.claimedHistotyModel.insertMany(claimedRewards);
     // console.log(txHash);
     // const txExist = await this.claimedRewardForStakeModel.find({
@@ -266,7 +265,6 @@ export class StakingService {
     // );
 
     // console.log(filteredLogs)
-
 
     // if (!filteredLogs.length) {
     //   throw new NotFoundException('No Reward found');
@@ -398,6 +396,8 @@ export class StakingService {
     try {
       // Fetch direct members of the current address
       const directMembers = await this.referralContract.getAllRefrees(address);
+      console.log(address)
+      console.log(directMembers)
       let totalCount = directMembers.length;
       let totalTeamStakedAmount = 0;
       let stakersWithMoreThanZeroTokens: string[] = [];
@@ -736,41 +736,37 @@ export class StakingService {
   async getDirectMemberswithStakedTokens(address: string) {
     let levelCount = 0;
     let memberData = [];
-
+    let tokensLevel = 0;
     try {
-      // Get user's own staked tokens
       const userTokens = await this.getUserTotalTokenStaked(address);
 
-      // Calculate additional levels based on staked tokens, capped at 24
       if (userTokens.tokens > 12500) {
         const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
-        levelCount += additionalLevels;
+        tokensLevel += additionalLevels;
       }
 
-      // Cap the levelCount at 24 levels
-      if (levelCount > 24) {
-        levelCount = 24;
+      if (tokensLevel > 24) {
+        tokensLevel = 24;
       }
 
-      // Fetch direct members
       const directMembers = await this.referralContract.getAllRefrees(address);
 
       for (const member of directMembers) {
-        // Get staked tokens for each direct member
         const tokens = await this.getUserTotalTokenStaked(member);
 
-        // If member's staked tokens are greater than 0, count them
         if (tokens.tokens > 0) {
-          // Add 1 level for each direct member with staked tokens
           levelCount += 1;
           memberData.push({ address: member, tokens: tokens.tokens });
 
-          // Ensure that levelCount does not exceed 24
           if (levelCount >= 24) {
             levelCount = 24;
-            break; // Stop adding more levels once we hit 24
+            break;
           }
         }
+      }
+
+      if (levelCount <= tokensLevel) {
+        levelCount = tokensLevel;
       }
 
       return { levelCount, memberData };
@@ -810,11 +806,10 @@ export class StakingService {
   async getTotalNetworkWithdrawals() {
     try {
       const tokens = await this.stakingContract.totalWithdrawnTokens();
-      console.log(tokens)
+      console.log(tokens);
       return Number(formatUnits(tokens, 18));
-      
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   }
 
@@ -822,5 +817,11 @@ export class StakingService {
     console.log(address);
     const directMembers = await this.referralContract.getAllRefrees(address);
     console.log(directMembers);
+  }
+
+  async getReferrer(address: string) {
+    const referrer = await this.referralContract.getReferrer(address);
+    console.log(referrer);
+    return referrer;
   }
 }

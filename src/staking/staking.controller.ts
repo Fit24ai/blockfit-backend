@@ -117,4 +117,9 @@ export class StakingController {
   async getTotalNetworkWithdrawal() {
     return this.stakingService.getTotalNetworkWithdrawals();
   }
+  @Get('get-upline')
+  @UseGuards(JwtAuthGuard)
+  async getReferrer(@Request() req: UserRequest) {
+    return this.stakingService.getReferrer(req.user.walletAddress);
+  }
 }
