@@ -6,6 +6,7 @@ export const stakingAbi = [
   },
   {
     anonymous: false,
+
     inputs: [
       {
         indexed: false,

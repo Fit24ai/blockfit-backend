@@ -99,6 +99,8 @@ export class StakingService {
     const receipt =
       await this.ethersService.binanceProvider.getTransactionReceipt(txHash);
 
+    console.log('receipt', receipt);
+
     const stakedLogs: LogDescription =
       this.ethersService.stakingInterface.parseLog(
         receipt?.logs[receipt.logs.length - 1],
@@ -124,6 +126,8 @@ export class StakingService {
         const parsedLog =
           this.ethersService.stakingInterface.parseLog(log).args;
 
+        console.log('parsedLog', parsedLog);
+
         const formattedReferralLog: IRefStakeLogs = {
           stakeId: Number(parsedLog[2]),
           walletAddress: parsedLog[0],
@@ -146,6 +150,7 @@ export class StakingService {
       });
 
       await this.StakingModel.insertMany(refStakedLogs);
+      console.log('refStakedLogs', refStakedLogs);
     }
 
     const updateRecord = await this.StakingModel.findByIdAndUpdate(
@@ -396,8 +401,8 @@ export class StakingService {
     try {
       // Fetch direct members of the current address
       const directMembers = await this.referralContract.getAllRefrees(address);
-      console.log(address)
-      console.log(directMembers)
+      console.log(address);
+      console.log(directMembers);
       let totalCount = directMembers.length;
       let totalTeamStakedAmount = 0;
       let stakersWithMoreThanZeroTokens: string[] = [];
