@@ -16,7 +16,7 @@ export interface IRefStakeLogs {
 }
 
 export interface IClaimedRewardForStake {
-  // stakeId: number;
+  stakeId: number;
   walletAddress: string;
   amount: number;
   timestamp: number;

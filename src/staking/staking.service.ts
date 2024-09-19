@@ -223,10 +223,10 @@ export class StakingService {
       console.log(log);
       console.log('parsed', parsedLog);
       const formattedClaimedLog: IClaimedRewardForStake = {
-        // stakeId: Number(parsedLog[0]),
-        walletAddress: parsedLog[0],
-        amount: this.BigIntToNumber(parsedLog[1]),
-        timestamp: Number(parsedLog[2]),
+        stakeId: Number(parsedLog[0]),
+        walletAddress: parsedLog[1],
+        amount: this.BigIntToNumber(parsedLog[2]),
+        timestamp: Number(parsedLog[3]),
         txHash,
       };
 
