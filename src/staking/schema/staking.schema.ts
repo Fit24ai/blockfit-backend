@@ -32,6 +32,9 @@ export class Staking {
   @Prop({ type: Boolean, required: false })
   isReferred: boolean;
 
+  @Prop({ type: Number, required: false, default: 0 })
+  totalClaimed: number;
+
   @Prop({ type: Number, required: false })
   level: number;
 

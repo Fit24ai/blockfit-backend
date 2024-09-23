@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -69,16 +70,45 @@ export class StakingController {
     );
   }
 
+  // @UseGuards(JwtAuthGuard)
+  // @Get('get-referral-stream')
+  // async getReferralStream(@Request() req: UserRequest) {
+  //   return this.stakingService.getReferralStream(req.user.walletAddress);
+  // }
+
   @UseGuards(JwtAuthGuard)
-  @Get('get-referral-stream')
-  async getReferralStream(@Request() req: UserRequest) {
-    return this.stakingService.getReferralStream(req.user.walletAddress);
+  @Get('get-referral-stream/:level?') // Make level optional with ?
+  async getReferralStream(
+    @Request() req: UserRequest,
+    @Param('level') level?: number, // Make level optional
+  ) {
+    const walletAddress = req.user.walletAddress;
+    return this.stakingService.getReferralStream(walletAddress, level);
   }
+
   @Get('get-user-staked-tokens')
   // @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async getUserTotalStaked(@Request() req: UserRequest) {
     return this.stakingService.getUserTotalTokenStaked(req.user.walletAddress);
+  }
+
+
+  @UseGuards(JwtAuthGuard)
+  @Get('get-all-level-claimed-rewards')
+  async getAllRefrralRewardClaimed(@Request() req: UserRequest) {
+    return this.stakingService.getAllRefrralRewardClaimed(
+      req.user.walletAddress,
+    );
+  }
+
+
+  @UseGuards(JwtAuthGuard)
+  @Get('get-all-stake-claimed-rewards')
+  async getAllStakeRewardClaimed(@Request() req: UserRequest) {
+    return this.stakingService.getAllStakeRewardClaimed(
+      req.user.walletAddress,
+    );
   }
 
   @Get('get-total-members')

@@ -179,10 +179,8 @@ export class StakingService {
 
   async getAllStakesByUser(walletAddress: string) {
     const stakes = await this.StakingModel.find({
-      walletAddress: {
-        $regex: walletAddress,
-        $options: 'i',
-      },
+      walletAddress: { $regex: walletAddress, $options: 'i' },
+      isReferred: false,
     }).sort({ startTime: -1 });
     return { stakes };
   }
@@ -220,22 +218,23 @@ export class StakingService {
 
     const claimedRewards: IClaimedRewardForStake[] = filteredLogs.map((log) => {
       const parsedLog = this.ethersService.stakingInterface.parseLog(log).args;
-      console.log(log);
-      console.log('parsed', parsedLog);
+      // console.log(log);
+      // console.log('parsed', parsedLog);
       const formattedClaimedLog: IClaimedRewardForStake = {
         stakeId: Number(parsedLog[0]),
         walletAddress: parsedLog[1],
         amount: this.BigIntToNumber(parsedLog[2]),
-        timestamp: Number(parsedLog[3]),
+        // timestamp: Number(parsedLog[3]),
+        timestamp:  Math.floor(Date.now() / 1000),
         txHash,
       };
 
-      console.log(formattedClaimedLog);
+      // console.log(formattedClaimedLog);
 
       return formattedClaimedLog;
     });
 
-    console.log(claimedRewards);
+    // console.log(claimedRewards);
 
     // for (const log of claimedRewards) {
     //   try {
@@ -251,7 +250,18 @@ export class StakingService {
     //     );
     //   }
     // }
-    console.log(claimedRewards);
+    // console.log(claimedRewards);
+
+    claimedRewards.map(async (reward) => {
+      const stake = await this.StakingModel.findOne({
+        stakeId: reward.stakeId,
+      });
+      if (stake) {
+        stake.totalClaimed = stake.totalClaimed + reward.amount;
+        await stake.save();
+      }
+    });
+
     return this.claimedHistotyModel.insertMany(claimedRewards);
     // console.log(txHash);
     // const txExist = await this.claimedRewardForStakeModel.find({
@@ -322,14 +332,84 @@ export class StakingService {
     return allStakedClaims.length ? allStakedClaims : [];
   }
 
-  async getReferralStream(walletAddress: string) {
+  async getAllRefrralRewardClaimed(walletAddress: string) {
+    let count = 0;
     const referralStream = await this.StakingModel.find({
       isReferred: true,
       walletAddress,
     }).sort({ startTime: -1 });
-    const result = [];
 
-    // console.log(referralStream);
+    for (const referral of referralStream) {
+      const amount = await this.stakingContract.stakeRewardClaimed(
+        referral.stakeId,
+      );
+      count = Number(amount) + count;
+    }
+    return { rewards: Number(formatUnits(count.toString(), 18)) };
+  }
+  async getAllStakeRewardClaimed(walletAddress: string) {
+    let count = 0;
+    const referralStream = await this.StakingModel.find({
+      isReferred: false,
+      walletAddress,
+    }).sort({ startTime: -1 });
+
+    for (const referral of referralStream) {
+      const amount = await this.stakingContract.stakeRewardClaimed(
+        referral.stakeId,
+      );
+      count = Number(amount) + count;
+    }
+    return { rewards: Number(formatUnits(count.toString(), 18)) };
+  }
+
+  async getReferralStream(walletAddress: string, level?: number) {
+    // const referralStream = await this.StakingModel.find({
+    //   isReferred: true,
+    //   walletAddress,
+    // }).sort({ startTime: -1 });
+
+    let result = [];
+
+    // Fetch referrals based on level
+    if (level) {
+      result = await this.getReferralsByLevel(walletAddress, level);
+    } else {
+      // If no level is provided, fetch all referral levels
+      const referralStream = await this.StakingModel.find({
+        isReferred: true,
+        walletAddress,
+      }).sort({ startTime: -1 });
+
+      for (const referral of referralStream) {
+        const referredUser = await this.StakingModel.findOne({
+          stakeId: referral.refId,
+        }).exec();
+
+        // console.log(referredUser)
+
+        if (referredUser) {
+          result.push({
+            referralDetails: referral,
+            referreDetails: {
+              referre: referredUser.walletAddress,
+              amount: referredUser.amount,
+            },
+          });
+        }
+      }
+    }
+
+    return result.length ? result : [];
+  }
+
+  private async getReferralsByLevel(walletAddress: string, level: number) {
+    let result = [];
+    const referralStream = await this.StakingModel.find({
+      isReferred: true,
+      walletAddress,
+      level: level,
+    }).sort({ startTime: -1 });
 
     for (const referral of referralStream) {
       const referredUser = await this.StakingModel.findOne({
@@ -348,8 +428,29 @@ export class StakingService {
         });
       }
     }
+    return result;
+  }
 
-    return result.length ? result : [];
+  private async getAllReferrals(referralStream: any[]) {
+    const result = [];
+
+    for (const referral of referralStream) {
+      const referredUser = await this.StakingModel.findOne({
+        stakeId: referral.refId,
+      }).exec();
+
+      if (referredUser) {
+        result.push({
+          referralDetails: referral,
+          referreDetails: {
+            referre: referredUser.walletAddress,
+            amount: referredUser.amount,
+          },
+        });
+      }
+    }
+
+    return result;
   }
 
   // async getTotalMembers(
