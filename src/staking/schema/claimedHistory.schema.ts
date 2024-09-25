@@ -20,8 +20,8 @@ export class ClaimedHistory {
   @Prop({ type: String, required: true })
   txHash: string;
 
-  // @Prop({ type: Number, required: true })
-  // poolType: number;
+  @Prop({ type: Number, required: true })
+  poolType: number;
 
   @Prop({ type: Boolean, required: false })
   isReferred: boolean;

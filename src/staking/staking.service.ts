@@ -225,7 +225,7 @@ export class StakingService {
         walletAddress: parsedLog[1],
         amount: this.BigIntToNumber(parsedLog[2]),
         // timestamp: Number(parsedLog[3]),
-        timestamp:  Math.floor(Date.now() / 1000),
+        timestamp: Math.floor(Date.now() / 1000),
         txHash,
       };
 
@@ -256,13 +256,16 @@ export class StakingService {
       const stake = await this.StakingModel.findOne({
         stakeId: reward.stakeId,
       });
+      reward.poolType = stake.poolType;
+      reward.isReferred = stake.isReferred;
+      await this.claimedHistotyModel.create(reward);
       if (stake) {
         stake.totalClaimed = stake.totalClaimed + reward.amount;
         await stake.save();
       }
     });
 
-    return this.claimedHistotyModel.insertMany(claimedRewards);
+    // return this.claimedHistotyModel.insertMany(claimedRewards);
     // console.log(txHash);
     // const txExist = await this.claimedRewardForStakeModel.find({
     //   txHash: { $regex: txHash, $options: 'i' },

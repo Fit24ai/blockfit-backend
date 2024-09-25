@@ -19,6 +19,8 @@ import { RandomiserModule } from './randomiser/randomiser.module';
 import { StakingModule } from './staking/staking.module';
 import { ReferralModule } from './referral/referral.module';
 import { NotificationModule } from './notification/notification.module';
+import { StakingTransactionModule } from './staking-transaction/staking-transaction.module';
+import { ListenerModule } from './listener/listener.module';
 
 @Module({
   imports: [
@@ -57,8 +59,11 @@ import { NotificationModule } from './notification/notification.module';
     StakingModule,
     ReferralModule,
     NotificationModule,
+    StakingTransactionModule,
+    ListenerModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy],
 })
+
 export class AppModule {}

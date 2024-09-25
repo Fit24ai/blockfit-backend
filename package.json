@@ -40,10 +40,13 @@
     "ethers": "^6.13.0",
     "math": "^0.0.3",
     "mongoose": "^8.4.1",
+    "moralis": "^2.27.2",
+    "nest-winston": "^1.9.7",
     "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
-    "uuid": "^10.0.0"
+    "uuid": "^10.0.0",
+    "winston": "^3.14.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^10.0.0",
