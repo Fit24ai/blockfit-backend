@@ -83,7 +83,7 @@ export class StakingService {
     };
   }
   async verifyStakingRecord(txHash: string, walletAddress: string) {
-    console.log('verify');
+    // console.log('verify');
     const transaction = await this.StakingModel.findOne({
       txHash,
       walletAddress: { $regex: walletAddress, $options: 'i' },
@@ -99,7 +99,7 @@ export class StakingService {
     const receipt =
       await this.ethersService.binanceProvider.getTransactionReceipt(txHash);
 
-    console.log('receipt', receipt);
+    // console.log('receipt', receipt);
 
     const stakedLogs: LogDescription =
       this.ethersService.stakingInterface.parseLog(
@@ -110,8 +110,8 @@ export class StakingService {
       (log) => log.topics[0] === process.env.REFERRAL_TOPIC,
     );
 
-    console.log('logs', filteredLogs);
-    console.log('staked logs', stakedLogs);
+    // console.log('logs', filteredLogs);
+    // console.log('staked logs', stakedLogs);
 
     const stakeDuration = await this.StakeDurationModel.findOne({
       poolType: Number(stakedLogs.args[3]),
@@ -126,7 +126,7 @@ export class StakingService {
         const parsedLog =
           this.ethersService.stakingInterface.parseLog(log).args;
 
-        console.log('parsedLog', parsedLog);
+        // console.log('parsedLog', parsedLog);
 
         const formattedReferralLog: IRefStakeLogs = {
           stakeId: Number(parsedLog[2]),
@@ -150,7 +150,7 @@ export class StakingService {
       });
 
       await this.StakingModel.insertMany(refStakedLogs);
-      console.log('refStakedLogs', refStakedLogs);
+      // console.log('refStakedLogs', refStakedLogs);
     }
 
     const updateRecord = await this.StakingModel.findByIdAndUpdate(
@@ -194,7 +194,7 @@ export class StakingService {
   }
 
   async createClaimedRewardForStake(txHash: string) {
-    console.log(txHash);
+    // console.log(txHash);
     const txExist = await this.claimedRewardForStakeModel.find({
       txHash: { $regex: txHash, $options: 'i' },
     });
@@ -210,7 +210,7 @@ export class StakingService {
       (log) => log.topics[0] === process.env.REWARD_CLAIMED_TOPIC,
     );
 
-    console.log(filteredLogs);
+    // console.log(filteredLogs);
 
     if (!filteredLogs.length) {
       throw new NotFoundException('No Reward found');
@@ -384,6 +384,8 @@ export class StakingService {
         walletAddress,
       }).sort({ startTime: -1 });
 
+      console.log(referralStream)
+
       for (const referral of referralStream) {
         const referredUser = await this.StakingModel.findOne({
           stakeId: referral.refId,
@@ -505,8 +507,8 @@ export class StakingService {
     try {
       // Fetch direct members of the current address
       const directMembers = await this.referralContract.getAllRefrees(address);
-      console.log(address);
-      console.log(directMembers);
+      // console.log(address);
+      // console.log(directMembers);
       let totalCount = directMembers.length;
       let totalTeamStakedAmount = 0;
       let stakersWithMoreThanZeroTokens: string[] = [];
@@ -915,22 +917,22 @@ export class StakingService {
   async getTotalNetworkWithdrawals() {
     try {
       const tokens = await this.stakingContract.totalWithdrawnTokens();
-      console.log(tokens);
+      // console.log(tokens);
       return Number(formatUnits(tokens, 18));
     } catch (error) {
-      console.log(error);
+      // console.log(error);
     }
   }
 
   async getRefrees(address: string) {
-    console.log(address);
+    // console.log(address);
     const directMembers = await this.referralContract.getAllRefrees(address);
-    console.log(directMembers);
+    // console.log(directMembers);
   }
 
   async getReferrer(address: string) {
     const referrer = await this.referralContract.getReferrer(address);
-    console.log(referrer);
+    // console.log(referrer);
     return referrer;
   }
 }

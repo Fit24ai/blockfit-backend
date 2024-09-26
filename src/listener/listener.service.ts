@@ -14,43 +14,47 @@ import { stakingAbi } from 'src/staking/libs/stakingAbi';
 
 @Injectable()
 export class ListenerService implements OnModuleInit {
-  private listeners = new Map<string, Contract>();
-  public readonly binanceProvider = new JsonRpcProvider(
-    process.env.BINANCE_PRC_PROVIDER,
-  );
-  public referralContract = new Contract(
-    fit24ReferralContractAddress,
-    referralAbi,
-    this.binanceProvider,
-  );
-  public stakingContract = new Contract(
-    fit24StakingContractAddress,
-    stakingAbi,
-    this.binanceProvider,
-  );
-
+  private listeners;
+  // public readonly binanceProvider = new JsonRpcProvider(
+  //   process.env.BSC_TESTNET_PROVIDER,
+  // );
+  // public referralContract = new Contract(
+  //   fit24ReferralContractAddress,
+  //   referralAbi,
+  //   this.binanceProvider,
+  // );
+  // public stakingContract = new Contract(
+  //   fit24StakingContractAddress,
+  //   stakingAbi,
+  //   this.binanceProvider,
+  // );
 
   public async onModuleInit() {
+    const binanceProvider = new JsonRpcProvider(
+      process.env.BSC_TESTNET_PROVIDER,
+    );
     await this.addListener();
   }
 
   public async addListener() {
-    if (!this.listeners.has(fit24StakingContractAddress)) {
-      console.log(`Adding listener for ${fit24StakingContractAddress}`);
-      const pairContract = new Contract(
-        fit24StakingContractAddress,
-        stakingAbi,
+    const binanceProvider = new JsonRpcProvider(
+      process.env.BSC_TESTNET_PROVIDER,
+    );
+    console.log(process.env.BSC_TESTNET_PROVIDER);
+    console.log(`Adding listener for ${fit24StakingContractAddress}`);
+    const stakingContract = new Contract(
+      fit24StakingContractAddress,
+      stakingAbi,
+      binanceProvider,
+    );
 
-        this.binanceProvider,
-      );
-
-      pairContract.on('Stake', async ({ data }) => {
-        console.log('changes');
-        console.log(data);
-      });
-      this.listeners.set(fit24StakingContractAddress, pairContract);
-      return { message: 'Pair Added Successfully' };
-    }
-    throw new BadRequestException({ message: 'Pair Already Listening' });
+    stakingContract.on('Staked', async (data) => {
+      console.log('changes');
+      console.log(data);
+      // const activeStakes = await stakingContract.activeStakesForLevels(data);
+      // console.log('activeStakes', activeStakes);
+    });
+    this.listeners = stakingContract;
+    return { message: 'Pair Added Successfully' };
   }
 }
