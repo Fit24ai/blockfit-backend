@@ -20,7 +20,7 @@ export class ClaimedHistory {
   @Prop({ type: String, required: true })
   txHash: string;
 
-  @Prop({ type: Number, required: true })
+  @Prop({ type: Number, required: false })
   poolType: number;
 
   @Prop({ type: Boolean, required: false })

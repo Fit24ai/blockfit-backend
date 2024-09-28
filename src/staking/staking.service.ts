@@ -250,14 +250,17 @@ export class StakingService {
     //     );
     //   }
     // }
-    // console.log(claimedRewards);
+    console.log(claimedRewards);
 
     claimedRewards.map(async (reward) => {
       const stake = await this.StakingModel.findOne({
         stakeId: reward.stakeId,
       });
-      reward.poolType = stake.poolType;
-      reward.isReferred = stake.isReferred;
+      if (stake) {
+        console.log(stake);
+        reward.poolType = stake.poolType;
+        reward.isReferred = stake.isReferred;
+      }
       await this.claimedHistotyModel.create(reward);
       if (stake) {
         stake.totalClaimed = stake.totalClaimed + reward.amount;
@@ -384,7 +387,7 @@ export class StakingService {
         walletAddress,
       }).sort({ startTime: -1 });
 
-      console.log(referralStream)
+      // console.log(referralStream)
 
       for (const referral of referralStream) {
         const referredUser = await this.StakingModel.findOne({
