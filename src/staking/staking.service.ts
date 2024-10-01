@@ -134,7 +134,7 @@ export class StakingService {
         const idToStake = await this.stakingContract.idToStake(
           Number(parsedLog[2]),
         );
-        // console.log('parsedLog', parsedLog);
+        console.log(idToStake)
 
         const formattedReferralLog: IRefStakeLogs = {
           stakeId: Number(parsedLog[2]),
