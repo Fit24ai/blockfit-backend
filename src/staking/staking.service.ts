@@ -126,39 +126,76 @@ export class StakingService {
       throw new Error('Stake duration not found');
     }
 
+    // if (filteredLogs.length > 0) {
+    //   const refStakedLogs = filteredLogs.map(async (log) => {
+    //     const parsedLog =
+    //       this.ethersService.stakingInterface.parseLog(log).args;
+
+    //     const idToStake = await this.stakingContract.idToStake(
+    //       Number(parsedLog[2]),
+    //     );
+    //     console.log(idToStake)
+
+    //     const formattedReferralLog: IRefStakeLogs = {
+    //       stakeId: Number(parsedLog[2]),
+    //       walletAddress: parsedLog[0],
+    //       amount: this.BigToNumber(parsedLog[1]),
+    //       apr: Number(idToStake[2]) / 10,
+    //       poolType: Number(idToStake[3]),
+    //       startTime: Number(stakedLogs.args[4]),
+    //       stakeDuration: stakeDuration.duration,
+    //       txHash,
+    //       isReferred: true,
+    //       level: Number(parsedLog[3]),
+    //       refId: Number(parsedLog[4]),
+    //       transactionStatus:
+    //         receipt.status === 1
+    //           ? TransactionStatusEnum.CONFIRMED
+    //           : TransactionStatusEnum.FAILED,
+    //     };
+
+    //     return formattedReferralLog;
+    //   });
+
+    //   console.log('refStakedLogs', refStakedLogs);
+    //   await this.StakingModel.insertMany(refStakedLogs);
+    // }
+
     if (filteredLogs.length > 0) {
-      const refStakedLogs = filteredLogs.map(async (log) => {
-        const parsedLog =
-          this.ethersService.stakingInterface.parseLog(log).args;
+      const refStakedLogs = await Promise.all(
+        filteredLogs.map(async (log) => {
+          const parsedLog =
+            this.ethersService.stakingInterface.parseLog(log).args;
 
-        const idToStake = await this.stakingContract.idToStake(
-          Number(parsedLog[2]),
-        );
-        console.log(idToStake)
+          const idToStake = await this.stakingContract.idToStake(
+            Number(parsedLog[2]),
+          );
+          console.log(idToStake);
 
-        const formattedReferralLog: IRefStakeLogs = {
-          stakeId: Number(parsedLog[2]),
-          walletAddress: parsedLog[0],
-          amount: this.BigToNumber(parsedLog[1]),
-          apr: Number(idToStake[2]) / 10,
-          poolType: Number(idToStake[3]),
-          startTime: Number(stakedLogs.args[4]),
-          stakeDuration: stakeDuration.duration,
-          txHash,
-          isReferred: true,
-          level: Number(parsedLog[3]),
-          refId: Number(parsedLog[4]),
-          transactionStatus:
-            receipt.status === 1
-              ? TransactionStatusEnum.CONFIRMED
-              : TransactionStatusEnum.FAILED,
-        };
+          const formattedReferralLog: IRefStakeLogs = {
+            stakeId: Number(parsedLog[2]),
+            walletAddress: parsedLog[0],
+            amount: this.BigToNumber(parsedLog[1]),
+            apr: Number(idToStake[2]) / 10,
+            poolType: Number(idToStake[3]),
+            startTime: Number(stakedLogs.args[4]), // Changed from stakedLogs.args[4] to parsedLog[4]
+            stakeDuration: stakeDuration.duration,
+            txHash,
+            isReferred: true,
+            level: Number(parsedLog[3]),
+            refId: Number(parsedLog[4]),
+            transactionStatus:
+              receipt.status === 1
+                ? TransactionStatusEnum.CONFIRMED
+                : TransactionStatusEnum.FAILED,
+          };
 
-        return formattedReferralLog;
-      });
+          return formattedReferralLog;
+        }),
+      );
 
+      console.log(refStakedLogs);
       await this.StakingModel.insertMany(refStakedLogs);
-      // console.log('refStakedLogs', refStakedLogs);
     }
 
     const idToStake = await this.stakingContract.idToStake(
@@ -186,6 +223,7 @@ export class StakingService {
         new: true,
       },
     );
+    console.log(updateRecord);
     return { stake: updateRecord };
   }
 
