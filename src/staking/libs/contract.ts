@@ -6,6 +6,8 @@ export const fit24ReferralContractAddress =
 // "0xeadbc8c7a9faac417a48bdf7a0a4eee4b7ffeaaa"
 export const fit24StakingContractAddress =
   '0xEa13bD56071A6bF0B18e94212477cE78CFd67cD8';
+
+  export const paymentContractAddress = '0x29e386aE25637754B835E00125f015E9EFB92D9F'
 // export const fit24StakingContractAddress =
 //   '0xe86FAe5693351bE8BD58Bde4C3660A715969532F';
 // export const fit24StakingContractAddress =

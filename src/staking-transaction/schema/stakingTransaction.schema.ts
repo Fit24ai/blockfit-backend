@@ -8,7 +8,7 @@ import {
 
 export type StakingTransactionDocument = HydratedDocument<StakingTransaction>;
 
-@Schema({ timestamps: true, collection: 'transaction' })
+@Schema({ timestamps: true, collection: 'stakingTransaction' })
 export class StakingTransaction {
   @Prop({ type: String, required: true })
   transactionHash: string;
@@ -38,10 +38,12 @@ export class StakingTransaction {
 
   @Prop({ type: String, required: true, default: '0' })
   tokenAmount: string;
+
   @Prop({ type: String, required: true, default: '0' })
-  apr: string;
+  apr: number;
+
   @Prop({ type: String, required: true, default: '0' })
-  poolType: string;
+  poolType: number;
 
   @Prop({
     type: String,

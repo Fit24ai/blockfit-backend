@@ -8,6 +8,6 @@ export class ListenerController {
 
   @Post()
   async addListener() {
-    return this.listenerService.addListener();
+    // return this.listenerService.addListener();
   }
 }

@@ -1,6 +1,6 @@
 import EthCrypto from 'eth-crypto';
-import { v4 } from 'uuid'
-import { ConfigService } from '@nestjs/config'
+import { v4 } from 'uuid';
+import { ConfigService } from '@nestjs/config';
 import { User } from './../users/schema/user.schema';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -8,24 +8,33 @@ import { Model, ObjectId } from 'mongoose';
 import { Transaction } from 'src/webhook/schema/transaction.schema';
 import { CreateTransactionDto } from './dto/createTransaction.dto';
 import {
-    ChainEnum,
+  ChainEnum,
   DistributionStatusEnum,
   TransactionStatusEnum,
 } from 'src/types/transaction';
 import { StakingTransaction } from './schema/stakingTransaction.schema';
 import { EthersService } from 'src/ethers/ethers.service';
-import { formatUnits, LogDescription, parseEther, solidityPackedKeccak256 } from 'ethers';
-import { StakingTransferTokensDto, TransferTokensDto } from 'src/transfer/dto/transferTokens.dto';
+import {
+  formatUnits,
+  LogDescription,
+  parseEther,
+  solidityPackedKeccak256,
+} from 'ethers';
+import {
+  StakingTransferTokensDto,
+  TransferTokensDto,
+} from 'src/transfer/dto/transferTokens.dto';
 import { PaymentReceivedDto } from 'src/webhook/dto/paymentReceived.dto';
 
 @Injectable()
 export class StakingTransactionService {
   constructor(
-    @InjectModel(StakingTransaction.name) private Transaction: Model<StakingTransaction>,
+    @InjectModel(StakingTransaction.name)
+    private Transaction: Model<StakingTransaction>,
     private readonly ethersService: EthersService,
     private readonly configService: ConfigService,
     @InjectModel(User.name) private User: Model<User>,
-  ) { }
+  ) {}
 
   async createTransaction(
     transaction: CreateTransactionDto,
@@ -103,7 +112,10 @@ export class StakingTransactionService {
       },
     });
 
-    if (transaction.distributionStatus === DistributionStatusEnum.DISTRIBUTED ||  transaction.distributionStatus === DistributionStatusEnum.PROCESSING)
+    if (
+      transaction.distributionStatus === DistributionStatusEnum.DISTRIBUTED ||
+      transaction.distributionStatus === DistributionStatusEnum.PROCESSING
+    )
       throw new BadRequestException('Already received transaction');
 
     if (!transaction) {
@@ -150,20 +162,21 @@ export class StakingTransactionService {
     transaction.tokenAddress = paymentReceivedFormatted.token;
 
     await transaction.save();
-    const { txHash, amount } = await this.transferTokens({
-      walletAddress: paymentReceivedFormatted.user,
-      purchaseAmount:
-        transaction.chain === ChainEnum.BINANCE
-          ? BigInt(paymentReceivedFormatted.amount)
-          : parseEther(formatUnits(paymentReceivedFormatted.amount, 6)),
-      transactionHash: paymentReceivedFormatted.transaction_hash,
-      poolType: transaction.poolType,
-      apr: transaction.apr,
-    });
 
-    transaction.distributionHash = txHash;
-    transaction.distributionStatus = DistributionStatusEnum.DISTRIBUTED;
-    transaction.tokenAmount = amount;
+    // const { txHash, amount } = await this.transferTokens({
+    //   walletAddress: paymentReceivedFormatted.user,
+    //   purchaseAmount:
+    //     transaction.chain === ChainEnum.BINANCE
+    //       ? BigInt(paymentReceivedFormatted.amount)
+    //       : parseEther(formatUnits(paymentReceivedFormatted.amount, 6)),
+    //   transactionHash: paymentReceivedFormatted.transaction_hash,
+    //   poolType: transaction.poolType,
+    //   apr: transaction.apr,
+    // });
+
+    // transaction.distributionHash = txHash;
+    // transaction.distributionStatus = DistributionStatusEnum.DISTRIBUTED;
+    // transaction.tokenAmount = amount;
 
     await transaction.save();
     return { message: 'Success' };
@@ -183,7 +196,8 @@ export class StakingTransactionService {
     return signature;
   }
   async transferTokens(transferBody: StakingTransferTokensDto) {
-    const { walletAddress, purchaseAmount, transactionHash, poolType, apr } = transferBody;
+    const { walletAddress, purchaseAmount, transactionHash, poolType, apr } =
+      transferBody;
     try {
       const noonce = v4();
       const messageHash = solidityPackedKeccak256(
@@ -209,7 +223,7 @@ export class StakingTransactionService {
       );
       return { txHash: tx.hash, amount: parsedLog.args[2] };
     } catch (error) {
-      console.log({error});
+      console.log({ error });
       throw error;
     }
   }
@@ -217,7 +231,7 @@ export class StakingTransactionService {
   async getAllTransactions(userId: ObjectId): Promise<Transaction[]> {
     return this.Transaction.find({
       user: userId,
-    }).sort({"createdAt":-1});
+    }).sort({ createdAt: -1 });
   }
 
   async updateTransaction(

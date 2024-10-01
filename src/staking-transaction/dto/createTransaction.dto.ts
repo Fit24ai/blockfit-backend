@@ -8,16 +8,6 @@ export class CreateTransactionDto {
   @ApiProperty()
   transactionHash: string;
 
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty()
-  apr: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty()
-  poolType: string;
-
   @IsEnum(ChainEnum)
   @IsNotEmpty()
   chain: ChainEnum;
