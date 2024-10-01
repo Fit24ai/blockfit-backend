@@ -7,6 +7,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { EthersService } from 'src/ethers/ethers.service';
 import { Staking } from './schema/staking.schema';
 import { Model } from 'mongoose';
+import BigNumber from 'bignumber.js';
 import {
   Contract,
   formatUnits,
@@ -55,6 +56,10 @@ export class StakingService {
 
   private BigIntToNumber(value: BigInt) {
     return Number(value) / Math.pow(10, 18);
+  }
+  private BigToNumber(value: BigInt): number {
+    const bigNumberValue = new BigNumber(value.toString());
+    return bigNumberValue.dividedBy(new BigNumber(10).pow(18)).toNumber();
   }
 
   async createStake(txHash: string, walletAddress: string, poolType: number) {
@@ -134,7 +139,7 @@ export class StakingService {
         const formattedReferralLog: IRefStakeLogs = {
           stakeId: Number(parsedLog[2]),
           walletAddress: parsedLog[0],
-          amount: this.BigIntToNumber(parsedLog[1]),
+          amount: this.BigToNumber(parsedLog[1]),
           apr: Number(idToStake[2]) / 10,
           poolType: Number(idToStake[3]),
           startTime: Number(stakedLogs.args[4]),
@@ -165,7 +170,7 @@ export class StakingService {
       {
         stakeId: Number(stakedLogs.args[5]),
         walletAddress: stakedLogs.args[0],
-        amount: this.BigIntToNumber(stakedLogs.args[1]),
+        amount: this.BigToNumber(stakedLogs.args[1]),
         apr: Number(idToStake[2]) / 10,
         poolType: Number(idToStake[3]),
         startTime: Number(stakedLogs.args[4]),
@@ -230,7 +235,7 @@ export class StakingService {
       const formattedClaimedLog: IClaimedRewardForStake = {
         stakeId: Number(parsedLog[0]),
         walletAddress: parsedLog[1],
-        amount: this.BigIntToNumber(parsedLog[2]),
+        amount: this.BigToNumber(parsedLog[2]),
         // timestamp: Number(parsedLog[3]),
         timestamp: Math.floor(Date.now() / 1000),
         txHash,
