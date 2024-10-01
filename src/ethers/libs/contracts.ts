@@ -1,5 +1,5 @@
 // * DEV
-export const IcoContract = '0x53A194AC678d190cDad6d99A4f7ad193e8621A2a';
+export const IcoContract = '0xCA67b7422006F9622e0D29072C88F3020088A2e8';
 export const EthereumPaymentContract =
   '0xA47010B505f8C5696eC6C95a7Bfe9E28C977EC6E';
 export const BinancePaymentContract =

@@ -1,11 +1,11 @@
 export const fit24ReferralContractAddress =
-  '0x3075Fd2a09e5a4a182924aA7442fC5E293ca1371';
+  '0x4Ef7a7FF61beb8c7b2ef407B07446ea77156ab83';
 // export const fit24ReferralContractAddress =
 //   '0xeb0B6A10159d31912a01b5DA2E49b37De7FB916c';
 // export const fit24StakingContractAddress =
 // "0xeadbc8c7a9faac417a48bdf7a0a4eee4b7ffeaaa"
 export const fit24StakingContractAddress =
-  '0xEa13bD56071A6bF0B18e94212477cE78CFd67cD8';
+  '0xCA67b7422006F9622e0D29072C88F3020088A2e8';
 
   export const paymentContractAddress = '0x29e386aE25637754B835E00125f015E9EFB92D9F'
 // export const fit24StakingContractAddress =
