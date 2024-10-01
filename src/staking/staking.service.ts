@@ -122,18 +122,21 @@ export class StakingService {
     }
 
     if (filteredLogs.length > 0) {
-      const refStakedLogs: IRefStakeLogs[] = filteredLogs.map((log) => {
+      const refStakedLogs = filteredLogs.map(async (log) => {
         const parsedLog =
           this.ethersService.stakingInterface.parseLog(log).args;
 
+        const idToStake = await this.stakingContract.idToStake(
+          Number(parsedLog[2]),
+        );
         // console.log('parsedLog', parsedLog);
 
         const formattedReferralLog: IRefStakeLogs = {
           stakeId: Number(parsedLog[2]),
           walletAddress: parsedLog[0],
           amount: this.BigIntToNumber(parsedLog[1]),
-          apr: Number(stakedLogs.args[2]) / 10,
-          poolType: Number(stakedLogs.args[3]),
+          apr: Number(idToStake[2]) / 10,
+          poolType: Number(idToStake[3]),
           startTime: Number(stakedLogs.args[4]),
           stakeDuration: stakeDuration.duration,
           txHash,
@@ -153,14 +156,18 @@ export class StakingService {
       // console.log('refStakedLogs', refStakedLogs);
     }
 
+    const idToStake = await this.stakingContract.idToStake(
+      Number(Number(stakedLogs.args[5])),
+    );
+
     const updateRecord = await this.StakingModel.findByIdAndUpdate(
       transaction._id,
       {
         stakeId: Number(stakedLogs.args[5]),
         walletAddress: stakedLogs.args[0],
         amount: this.BigIntToNumber(stakedLogs.args[1]),
-        apr: Number(stakedLogs.args[2]) / 10,
-        poolType: Number(stakedLogs.args[3]),
+        apr: Number(idToStake[2]) / 10,
+        poolType: Number(idToStake[3]),
         startTime: Number(stakedLogs.args[4]),
         stakeDuration: stakeDuration.duration,
         txHash,
@@ -560,7 +567,6 @@ export class StakingService {
       await this.stakingContract.userTotalTokenStaked(fixedAddress);
     return { tokens: Number(formatUnits(tokens, 18)) };
   }
-
 
   async getAllLevelMembers(
     address: string,
