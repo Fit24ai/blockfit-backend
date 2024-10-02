@@ -755,8 +755,9 @@ export class StakingService {
     let tokensLevel = 0;
     try {
       const userTokens = await this.getUserTotalTokenStaked(address);
+      console.log(userTokens)
 
-      if (userTokens.tokens > 12500) {
+      if (userTokens.tokens >= 12500) {
         const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
         tokensLevel += additionalLevels;
       }

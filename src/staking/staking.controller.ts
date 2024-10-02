@@ -93,7 +93,6 @@ export class StakingController {
     return this.stakingService.getUserTotalTokenStaked(req.user.walletAddress);
   }
 
-
   @UseGuards(JwtAuthGuard)
   @Get('get-all-level-claimed-rewards')
   async getAllRefrralRewardClaimed(@Request() req: UserRequest) {
@@ -102,13 +101,10 @@ export class StakingController {
     );
   }
 
-
   @UseGuards(JwtAuthGuard)
   @Get('get-all-stake-claimed-rewards')
   async getAllStakeRewardClaimed(@Request() req: UserRequest) {
-    return this.stakingService.getAllStakeRewardClaimed(
-      req.user.walletAddress,
-    );
+    return this.stakingService.getAllStakeRewardClaimed(req.user.walletAddress);
   }
 
   @Get('get-total-members')
@@ -122,6 +118,11 @@ export class StakingController {
     return this.stakingService.getDirectMemberswithStakedTokens(
       req.user.walletAddress,
     );
+  }
+  @Get('get-level/:address')
+  // @UseGuards(JwtAuthGuard)
+  async getLEVELUSER(@Param('address') address: string) {
+    return this.stakingService.getDirectMemberswithStakedTokens(address);
   }
   @Post('get-direct-members-data')
   @UseGuards(JwtAuthGuard)
