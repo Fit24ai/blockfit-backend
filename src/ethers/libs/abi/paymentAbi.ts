@@ -105,37 +105,6 @@ const paymentAbi = [
     type: 'event',
   },
   {
-    inputs: [
-      { internalType: 'bytes32', name: 'hash', type: 'bytes32' },
-      { internalType: 'bytes', name: 'signature', type: 'bytes' },
-    ],
-    name: 'getAddress',
-    outputs: [{ internalType: 'address', name: '', type: 'address' }],
-    stateMutability: 'pure',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'string', name: 'nonce', type: 'string' },
-      { internalType: 'address', name: 'receiver', type: 'address' },
-      { internalType: 'uint256', name: 'amount', type: 'uint256' },
-    ],
-    name: 'hashTransaction',
-    outputs: [{ internalType: 'bytes32', name: '', type: 'bytes32' }],
-    stateMutability: 'pure',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'bytes32', name: 'hash', type: 'bytes32' },
-      { internalType: 'bytes', name: 'signature', type: 'bytes' },
-    ],
-    name: 'matchSigner',
-    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
     inputs: [],
     name: 'owner',
     outputs: [{ internalType: 'address', name: '', type: 'address' }],
@@ -179,13 +148,6 @@ const paymentAbi = [
     name: 'seTreasury',
     outputs: [],
     stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'signer',
-    outputs: [{ internalType: 'address', name: '', type: 'address' }],
-    stateMutability: 'view',
     type: 'function',
   },
   {

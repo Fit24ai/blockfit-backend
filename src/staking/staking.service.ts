@@ -112,7 +112,7 @@ export class StakingService {
     const filteredLogs = receipt.logs.filter(
       (log) => log.topics[0] === process.env.REFERRAL_TOPIC,
     );
-    
+
 
 
     const stakeDuration = await this.StakeDurationModel.findOne({
@@ -789,7 +789,7 @@ export class StakingService {
   async getTotalNetworkWithdrawals() {
     try {
       const tokens =
-        await this.ethersService.icoContract.totalWithdrawnTokens();
+        await this.ethersService.icoContract.totalClaimed();
       // console.log(tokens);
       return Number(formatUnits(tokens, 18));
     } catch (error) {
