@@ -20,7 +20,7 @@ import { StakingModule } from './staking/staking.module';
 import { ReferralModule } from './referral/referral.module';
 import { NotificationModule } from './notification/notification.module';
 import { StakingTransactionModule } from './staking-transaction/staking-transaction.module';
-import { ListenerModule } from './listener/listener.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -60,7 +60,7 @@ import { ListenerModule } from './listener/listener.module';
     ReferralModule,
     NotificationModule,
     StakingTransactionModule,
-    ListenerModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy],

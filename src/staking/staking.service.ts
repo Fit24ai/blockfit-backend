@@ -20,29 +20,10 @@ import { StakeDuration } from './schema/stakeDuration.schema';
 import { ClaimedRewardForStakeHistory } from './schema/claimedRewardForStakeHistory.schema';
 import { IRefStakeLogs, IClaimedRewardForStake } from './types/logs';
 import { TransactionStatusEnum } from 'src/types/transaction';
-import { referralAbi } from './libs/referralAbi';
-import {
-  fit24ReferralContractAddress,
-  fit24StakingContractAddress,
-} from './libs/contract';
-import { stakingAbi } from './libs/stakingAbi';
 import { ClaimedHistory } from './schema/claimedHistory.schema';
 
 @Injectable()
 export class StakingService {
-  public readonly binanceProvider = new JsonRpcProvider(
-    process.env.BINANCE_PRC_PROVIDER,
-  );
-  public referralContract = new Contract(
-    fit24ReferralContractAddress,
-    referralAbi,
-    this.binanceProvider,
-  );
-  public stakingContract = new Contract(
-    fit24StakingContractAddress,
-    stakingAbi,
-    this.binanceProvider,
-  );
   constructor(
     private readonly ethersService: EthersService,
     @InjectModel(Staking.name) private StakingModel: Model<Staking>,
@@ -67,10 +48,12 @@ export class StakingService {
       txHash,
       walletAddress: { $regex: walletAddress, $options: 'i' },
     });
+    console.log(1)
 
     if (isStakeExist) {
       throw new ConflictException('Transaction already exists');
     }
+    console.log(2)
     const stakeDuration = await this.StakeDurationModel.findOne({
       poolType,
     });
@@ -83,12 +66,15 @@ export class StakingService {
       startTime: Math.floor(Date.now() / 1000),
       stakeDuration: stakeDuration.duration,
     });
+    console.log(3)
     return {
       message: 'Stake create successfully',
     };
   }
+
   async verifyStakingRecord(txHash: string, walletAddress: string) {
-    // console.log('verify');
+    console.log('verify');
+
     const transaction = await this.StakingModel.findOne({
       txHash,
       walletAddress: { $regex: walletAddress, $options: 'i' },
@@ -104,19 +90,30 @@ export class StakingService {
     const receipt =
       await this.ethersService.binanceProvider.getTransactionReceipt(txHash);
 
-    // console.log('receipt', receipt);
+    console.log('receipt', receipt);
 
-    const stakedLogs: LogDescription =
-      this.ethersService.stakingInterface.parseLog(
-        receipt?.logs[receipt.logs.length - 1],
-      );
+    const stakedLogs2 = receipt.logs.filter(
+      (log) => log.topics[0] === process.env.STAKED_TOPIC,
+    );
+
+    console.log('Filtered Staked Logs:', stakedLogs2);
+
+    let stakedLogs;
+    for (const log of stakedLogs2) {
+      try {
+        const parsedLog = this.ethersService.stakingInterface.parseLog(log);
+        stakedLogs = parsedLog;
+        console.log('Parsed Log:', parsedLog.args);
+      } catch (error) {
+        console.error('Failed to parse filtered log:', error);
+      }
+    }
 
     const filteredLogs = receipt.logs.filter(
       (log) => log.topics[0] === process.env.REFERRAL_TOPIC,
     );
+    
 
-    // console.log('logs', filteredLogs);
-    // console.log('staked logs', stakedLogs);
 
     const stakeDuration = await this.StakeDurationModel.findOne({
       poolType: Number(stakedLogs.args[3]),
@@ -126,40 +123,6 @@ export class StakingService {
       throw new Error('Stake duration not found');
     }
 
-    // if (filteredLogs.length > 0) {
-    //   const refStakedLogs = filteredLogs.map(async (log) => {
-    //     const parsedLog =
-    //       this.ethersService.stakingInterface.parseLog(log).args;
-
-    //     const idToStake = await this.stakingContract.idToStake(
-    //       Number(parsedLog[2]),
-    //     );
-    //     console.log(idToStake)
-
-    //     const formattedReferralLog: IRefStakeLogs = {
-    //       stakeId: Number(parsedLog[2]),
-    //       walletAddress: parsedLog[0],
-    //       amount: this.BigToNumber(parsedLog[1]),
-    //       apr: Number(idToStake[2]) / 10,
-    //       poolType: Number(idToStake[3]),
-    //       startTime: Number(stakedLogs.args[4]),
-    //       stakeDuration: stakeDuration.duration,
-    //       txHash,
-    //       isReferred: true,
-    //       level: Number(parsedLog[3]),
-    //       refId: Number(parsedLog[4]),
-    //       transactionStatus:
-    //         receipt.status === 1
-    //           ? TransactionStatusEnum.CONFIRMED
-    //           : TransactionStatusEnum.FAILED,
-    //     };
-
-    //     return formattedReferralLog;
-    //   });
-
-    //   console.log('refStakedLogs', refStakedLogs);
-    //   await this.StakingModel.insertMany(refStakedLogs);
-    // }
 
     if (filteredLogs.length > 0) {
       const refStakedLogs = await Promise.all(
@@ -167,7 +130,7 @@ export class StakingService {
           const parsedLog =
             this.ethersService.stakingInterface.parseLog(log).args;
 
-          const idToStake = await this.stakingContract.idToStake(
+          const idToStake = await this.ethersService.icoContract.idToStake(
             Number(parsedLog[2]),
           );
           console.log(idToStake);
@@ -198,7 +161,7 @@ export class StakingService {
       await this.StakingModel.insertMany(refStakedLogs);
     }
 
-    const idToStake = await this.stakingContract.idToStake(
+    const idToStake = await this.ethersService.icoContract.idToStake(
       Number(Number(stakedLogs.args[5])),
     );
 
@@ -396,7 +359,7 @@ export class StakingService {
     }).sort({ startTime: -1 });
 
     for (const referral of referralStream) {
-      const amount = await this.stakingContract.stakeRewardClaimed(
+      const amount = await this.ethersService.icoContract.stakeRewardClaimed(
         referral.stakeId,
       );
       count = Number(amount) + count;
@@ -411,7 +374,7 @@ export class StakingService {
     }).sort({ startTime: -1 });
 
     for (const referral of referralStream) {
-      const amount = await this.stakingContract.stakeRewardClaimed(
+      const amount = await this.ethersService.icoContract.stakeRewardClaimed(
         referral.stakeId,
       );
       count = Number(amount) + count;
@@ -559,7 +522,8 @@ export class StakingService {
 
     try {
       // Fetch direct members of the current address
-      const directMembers = await this.referralContract.getAllRefrees(address);
+      const directMembers =
+        await this.ethersService.referralContract.getAllRefrees(address);
       // console.log(address);
       // console.log(directMembers);
       let totalCount = directMembers.length;
@@ -607,7 +571,7 @@ export class StakingService {
   async getUserTotalTokenStaked(walletAddress: string) {
     const fixedAddress = getAddress(walletAddress);
     const tokens =
-      await this.stakingContract.userTotalTokenStaked(fixedAddress);
+      await this.ethersService.icoContract.userTotalTokenStaked(fixedAddress);
     return { tokens: Number(formatUnits(tokens, 18)) };
   }
 
@@ -643,7 +607,8 @@ export class StakingService {
     let totalCount = 0;
 
     try {
-      const directMembers = await this.referralContract.getAllRefrees(address);
+      const directMembers =
+        await this.ethersService.referralContract.getAllRefrees(address);
 
       if (currentLevel === targetLevel) {
         for (const member of directMembers) {
@@ -703,7 +668,8 @@ export class StakingService {
 
     try {
       // Fetch direct members (referrals)
-      const directMembers = await this.referralContract.getAllRefrees(address);
+      const directMembers =
+        await this.ethersService.referralContract.getAllRefrees(address);
 
       if (directMembers.length === 0) {
         // If no direct members, the level is 0
@@ -765,7 +731,8 @@ export class StakingService {
         tokensLevel = 24;
       }
 
-      const directMembers = await this.referralContract.getAllRefrees(address);
+      const directMembers =
+        await this.ethersService.referralContract.getAllRefrees(address);
 
       for (const member of directMembers) {
         const tokens = await this.getUserTotalTokenStaked(member);
@@ -796,7 +763,7 @@ export class StakingService {
     let totalStakedMembers = 0;
     let stakedMemberData = [];
     try {
-      const members = await this.stakingContract.getAllUsers();
+      const members = await this.ethersService.icoContract.getAllUsers();
       for (const member of members) {
         const tokens = await this.getUserTotalTokenStaked(member);
         if (tokens.tokens > 0) {
@@ -816,12 +783,13 @@ export class StakingService {
   }
 
   async getTotalNetworkStaked() {
-    const tokens = await this.stakingContract.totalStakedTokens();
+    const tokens = await this.ethersService.icoContract.totalStakedTokens();
     return Number(formatUnits(tokens, 18));
   }
   async getTotalNetworkWithdrawals() {
     try {
-      const tokens = await this.stakingContract.totalWithdrawnTokens();
+      const tokens =
+        await this.ethersService.icoContract.totalWithdrawnTokens();
       // console.log(tokens);
       return Number(formatUnits(tokens, 18));
     } catch (error) {
@@ -831,12 +799,14 @@ export class StakingService {
 
   async getRefrees(address: string) {
     // console.log(address);
-    const directMembers = await this.referralContract.getAllRefrees(address);
+    const directMembers =
+      await this.ethersService.referralContract.getAllRefrees(address);
     // console.log(directMembers);
   }
 
   async getReferrer(address: string) {
-    const referrer = await this.referralContract.getReferrer(address);
+    const referrer =
+      await this.ethersService.referralContract.getReferrer(address);
     // console.log(referrer);
     return referrer;
   }

@@ -36,5 +36,6 @@ import {
   ],
   controllers: [StakingController],
   providers: [StakingService, EthersService],
+  exports: [StakingService],
 })
 export class StakingModule {}

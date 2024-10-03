@@ -5,11 +5,6 @@ export class PaymentReceivedDto {
   @IsNotEmpty()
   @IsString()
   @ApiProperty()
-  id: string;
-
-  @IsNotEmpty()
-  @IsString()
-  @ApiProperty()
   amount: string;
 
   @IsNotEmpty()
@@ -21,16 +16,6 @@ export class PaymentReceivedDto {
   @ApiProperty()
   @IsString()
   user: string;
-
-  @IsNotEmpty()
-  @ApiProperty()
-  @IsNumber()
-  block_number: number;
-
-  @IsNotEmpty()
-  @ApiProperty()
-  @IsNumber()
-  block_timestamp: number;
 
   @IsNotEmpty()
   @ApiProperty()

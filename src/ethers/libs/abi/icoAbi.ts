@@ -1,6 +1,6 @@
 const icoAbi = [
   {
-    inputs: [],
+    inputs: [{ internalType: 'address', name: 'fit24', type: 'address' }],
     stateMutability: 'nonpayable',
     type: 'constructor',
   },
@@ -10,17 +10,23 @@ const icoAbi = [
       {
         indexed: false,
         internalType: 'address',
-        name: 'vestingContract',
+        name: 'user',
         type: 'address',
       },
       {
         indexed: false,
-        internalType: 'address',
-        name: 'token',
-        type: 'address',
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'timestamp',
+        type: 'uint256',
       },
     ],
-    name: 'ContractsUpdated',
+    name: 'DailyRewardClaimed',
     type: 'event',
   },
   {
@@ -48,23 +54,11 @@ const icoAbi = [
       {
         indexed: false,
         internalType: 'uint256',
-        name: 'phase1Price',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'phase2Price',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'phase3Price',
+        name: 'stakeId',
         type: 'uint256',
       },
     ],
-    name: 'PriceUpdated',
+    name: 'ReferralAprStopped',
     type: 'event',
   },
   {
@@ -78,24 +72,30 @@ const icoAbi = [
       },
       {
         indexed: false,
-        internalType: 'address',
-        name: 'referrer',
-        type: 'address',
-      },
-      {
-        indexed: false,
         internalType: 'uint256',
-        name: 'amountPurchased',
+        name: 'amount',
         type: 'uint256',
       },
       {
         indexed: false,
         internalType: 'uint256',
-        name: 'referalAmount',
+        name: 'stakeId',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'level',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'refId',
         type: 'uint256',
       },
     ],
-    name: 'ReferalIncomeDistributed',
+    name: 'ReferralStakeCreated',
     type: 'event',
   },
   {
@@ -104,67 +104,29 @@ const icoAbi = [
       {
         indexed: false,
         internalType: 'uint256',
-        name: 'phase1Supply',
+        name: 'stake',
         type: 'uint256',
       },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'phase2Supply',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'phase3Supply',
-        type: 'uint256',
-      },
-    ],
-    name: 'SupplyEdited',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: true,
-        internalType: 'address',
-        name: 'investor',
-        type: 'address',
-      },
-      {
-        indexed: true,
-        internalType: 'uint256',
-        name: 'usdAmount',
-        type: 'uint256',
-      },
-      {
-        indexed: true,
-        internalType: 'uint256',
-        name: 'tokenAmount',
-        type: 'uint256',
-      },
-      {
-        indexed: false,
-        internalType: 'uint256',
-        name: 'phase',
-        type: 'uint256',
-      },
-    ],
-    name: 'TokensBought',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
       {
         indexed: false,
         internalType: 'address',
-        name: 'treasury',
+        name: 'user',
         type: 'address',
       },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'timestamp',
+        type: 'uint256',
+      },
     ],
-    name: 'TreasuryUpdated',
+    name: 'RewardClaimedForStake',
     type: 'event',
   },
   {
@@ -178,438 +140,233 @@ const icoAbi = [
       },
       {
         indexed: false,
-        internalType: 'bool',
-        name: 'isWhitelisted',
-        type: 'bool',
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'stake',
+        type: 'uint256',
       },
     ],
-    name: 'WhitelistUpdated',
+    name: 'StakeClaimed',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'address',
+        name: 'user',
+        type: 'address',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
+      },
+      { indexed: false, internalType: 'uint256', name: 'apr', type: 'uint256' },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'poolType',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'startTime',
+        type: 'uint256',
+      },
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'stakeId',
+        type: 'uint256',
+      },
+    ],
+    name: 'Staked',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'amount',
+        type: 'uint256',
+      },
+    ],
+    name: 'TreasuryRewardClaimed',
     type: 'event',
   },
   {
     inputs: [
-      {
-        internalType: 'address',
-        name: '',
-        type: 'address',
-      },
+      { internalType: 'uint256', name: 'amount', type: 'uint256' },
+      { internalType: 'uint256', name: 'poolType', type: 'uint256' },
+      { internalType: 'uint256', name: '_apr', type: 'uint256' },
+      { internalType: 'address', name: 'user', type: 'address' },
     ],
+    name: 'StakeTokens',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
     name: 'added',
-    outputs: [
-      {
-        internalType: 'bool',
-        name: '',
-        type: 'bool',
-      },
-    ],
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'allUsers',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'apr',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [],
-    name: 'amountRaised',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: 'amount',
-        type: 'uint256',
-      },
-      {
-        internalType: 'address',
-        name: 'user',
-        type: 'address',
-      },
-      {
-        internalType: 'string',
-        name: 'nonce',
-        type: 'string',
-      },
-      {
-        internalType: 'bytes',
-        name: 'signerSignature',
-        type: 'bytes',
-      },
-    ],
-    name: 'buyPhase4Tokens',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: 'amount',
-        type: 'uint256',
-      },
-      {
-        internalType: 'address',
-        name: 'user',
-        type: 'address',
-      },
-      {
-        internalType: 'string',
-        name: 'nonce',
-        type: 'string',
-      },
-      {
-        internalType: 'bytes',
-        name: 'signerSignature',
-        type: 'bytes',
-      },
-    ],
-    name: 'buyToken',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: 'amount',
-        type: 'uint256',
-      },
-    ],
-    name: 'buyTokensAdmin',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: '_phase1Price',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint256',
-        name: '_phase2Price',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint256',
-        name: '_phase3Price',
-        type: 'uint256',
-      },
-    ],
-    name: 'editPrice',
+    name: 'claimAllReward',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
   },
   {
     inputs: [],
-    name: 'fit24',
-    outputs: [
-      {
-        internalType: 'address',
-        name: '',
-        type: 'address',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'bytes32',
-        name: 'hash',
-        type: 'bytes32',
-      },
-      {
-        internalType: 'bytes',
-        name: 'signature',
-        type: 'bytes',
-      },
-    ],
-    name: 'getAddress',
-    outputs: [
-      {
-        internalType: 'address',
-        name: '',
-        type: 'address',
-      },
-    ],
-    stateMutability: 'pure',
+    name: 'claimTreasuryReward',
+    outputs: [],
+    stateMutability: 'nonpayable',
     type: 'function',
   },
   {
     inputs: [],
-    name: 'getStage',
+    name: 'getAllUsers',
+    outputs: [{ internalType: 'address[]', name: 'users', type: 'address[]' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'user', type: 'address' }],
+    name: 'getPendingAmountForDay',
+    outputs: [{ internalType: 'uint256', name: 'amount', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'user', type: 'address' }],
+    name: 'getUserActiveStakes',
+    outputs: [{ internalType: 'uint256[]', name: 'stakes', type: 'uint256[]' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'user', type: 'address' }],
+    name: 'getUserStakesLength',
     outputs: [
-      {
-        internalType: 'uint256',
-        name: 'stage',
-        type: 'uint256',
-      },
+      { internalType: 'uint256', name: 'totalStakes', type: 'uint256' },
     ],
     stateMutability: 'view',
     type: 'function',
   },
   {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: 'stage',
-        type: 'uint256',
-      },
-    ],
-    name: 'getStagePrice',
+    inputs: [{ internalType: 'address', name: 'user', type: 'address' }],
+    name: 'getUserTotalStakeReward',
+    outputs: [{ internalType: 'uint256', name: 'amount', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'idToStake',
     outputs: [
-      {
-        internalType: 'uint256',
-        name: 'price',
-        type: 'uint256',
-      },
+      { internalType: 'address', name: 'user', type: 'address' },
+      { internalType: 'uint256', name: 'amount', type: 'uint256' },
+      { internalType: 'uint256', name: 'apr', type: 'uint256' },
+      { internalType: 'uint256', name: 'poolType', type: 'uint256' },
+      { internalType: 'uint256', name: 'startTime', type: 'uint256' },
+      { internalType: 'bool', name: 'isReferral', type: 'bool' },
+      { internalType: 'bool', name: 'active', type: 'bool' },
     ],
     stateMutability: 'view',
     type: 'function',
   },
   {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: 'amount',
-        type: 'uint256',
-      },
-    ],
-    name: 'getTokensForAmount',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: 'tokenAmount',
-        type: 'uint256',
-      },
-    ],
+    inputs: [{ internalType: 'uint256', name: 'stakeId', type: 'uint256' }],
+    name: 'isStakeActive',
+    outputs: [{ internalType: 'bool', name: 'active', type: 'bool' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [],
-    name: 'getTotalSales',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: 'sales',
-        type: 'uint256',
-      },
-    ],
+    name: 'lastClaimedTimestamp',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'levelToAprCommision',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [
-      {
-        internalType: 'string',
-        name: 'nonce',
-        type: 'string',
-      },
-      {
-        internalType: 'address',
-        name: 'receiver',
-        type: 'address',
-      },
-      {
-        internalType: 'uint256',
-        name: 'amount',
-        type: 'uint256',
-      },
+      { internalType: 'address', name: 'user', type: 'address' },
+      { internalType: 'uint256', name: 'stakeAmount', type: 'uint256' },
+      { internalType: 'uint256', name: 'poolType', type: 'uint256' },
+      { internalType: 'uint256', name: '_apr', type: 'uint256' },
+      { internalType: 'uint256', name: 'start', type: 'uint256' },
+      { internalType: 'uint256', name: 'id', type: 'uint256' },
     ],
-    name: 'hashTransaction',
-    outputs: [
-      {
-        internalType: 'bytes32',
-        name: '',
-        type: 'bytes32',
-      },
-    ],
-    stateMutability: 'pure',
+    name: 'manageReferral',
+    outputs: [],
+    stateMutability: 'nonpayable',
     type: 'function',
   },
   {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    name: 'investors',
-    outputs: [
-      {
-        internalType: 'address',
-        name: '',
-        type: 'address',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'isPhase4Active',
-    outputs: [
-      {
-        internalType: 'bool',
-        name: '',
-        type: 'bool',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'bytes32',
-        name: 'hash',
-        type: 'bytes32',
-      },
-      {
-        internalType: 'bytes',
-        name: 'signature',
-        type: 'bytes',
-      },
-    ],
-    name: 'matchSigner',
-    outputs: [
-      {
-        internalType: 'bool',
-        name: '',
-        type: 'bool',
-      },
-    ],
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'minimumStakingAmount',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [],
     name: 'owner',
-    outputs: [
-      {
-        internalType: 'address',
-        name: '',
-        type: 'address',
-      },
-    ],
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [],
-    name: 'phase1Price',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
+    name: 'referralContract',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
-    inputs: [],
-    name: 'phase1Supply',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
+    inputs: [
+      { internalType: 'uint256', name: '', type: 'uint256' },
+      { internalType: 'uint256', name: '', type: 'uint256' },
     ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'phase2Price',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'phase2Supply',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'phase3Price',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'phase3Supply',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'phase4Price',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [],
-    name: 'phase4Supply',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
+    name: 'referredStakes',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
   },
@@ -621,244 +378,152 @@ const icoAbi = [
     type: 'function',
   },
   {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: 'supply',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint256',
-        name: 'price',
-        type: 'uint256',
-      },
-      {
-        internalType: 'bool',
-        name: 'isActive',
-        type: 'bool',
-      },
-    ],
-    name: 'setPhase4',
+    inputs: [{ internalType: 'uint256', name: '_tge', type: 'uint256' }],
+    name: 'setTge',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: '_treasury', type: 'address' }],
+    name: 'setTreasury',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'stakeDuration',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    name: 'stakeRewardClaimed',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'stakingDetails',
+    outputs: [{ internalType: 'uint256', name: '_value', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'uint256', name: 'id', type: 'uint256' }],
+    name: 'stopReferalApr',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
   },
   {
     inputs: [],
-    name: 'signer',
-    outputs: [
-      {
-        internalType: 'address',
-        name: '',
-        type: 'address',
-      },
-    ],
+    name: 'tge',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [],
-    name: 'tokensSold',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
+    name: 'token',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '',
-        type: 'address',
-      },
-    ],
-    name: 'totalTokenBoughtUser',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
+    inputs: [],
+    name: 'totalStakedTokens',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    name: 'totalTokenSoldForPhase',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '',
-        type: 'address',
-      },
-    ],
-    name: 'totalUsdInvestedByUser',
-    outputs: [
-      {
-        internalType: 'uint256',
-        name: '',
-        type: 'uint256',
-      },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: 'newOwner',
-        type: 'address',
-      },
-    ],
+    inputs: [{ internalType: 'address', name: 'newOwner', type: 'address' }],
     name: 'transferOwnership',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',
   },
   {
-    inputs: [
-      {
-        internalType: 'address',
-        name: '_vestingContract',
-        type: 'address',
-      },
-      {
-        internalType: 'address',
-        name: 'token',
-        type: 'address',
-      },
-    ],
-    name: 'updateContracts',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'uint256',
-        name: '_phase1Supply',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint256',
-        name: '_phase2Supply',
-        type: 'uint256',
-      },
-      {
-        internalType: 'uint256',
-        name: '_phase3Supply',
-        type: 'uint256',
-      },
-    ],
-    name: 'updateSupply',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'address',
-        name: 'token',
-        type: 'address',
-      },
-    ],
-    name: 'updatefit24TokenAddress',
-    outputs: [],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      {
-        internalType: 'string',
-        name: '',
-        type: 'string',
-      },
-    ],
-    name: 'usedNonce',
-    outputs: [
-      {
-        internalType: 'bool',
-        name: '',
-        type: 'bool',
-      },
-    ],
+    inputs: [],
+    name: 'treasury',
+    outputs: [{ internalType: 'address', name: '', type: 'address' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [],
-    name: 'vestingContract',
-    outputs: [
-      {
-        internalType: 'address',
-        name: '',
-        type: 'address',
-      },
+    name: 'treasuryAmountClaimed',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [{ internalType: 'address', name: 'referral', type: 'address' }],
+    name: 'updateReferralContract',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'uint256', name: 'poolId', type: 'uint256' },
+      { internalType: 'uint256', name: 'duration', type: 'uint256' },
     ],
+    name: 'updateStakeDuration',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: '', type: 'address' },
+      { internalType: 'uint256', name: '', type: 'uint256' },
+    ],
+    name: 'userDailyRewardClaimed',
+    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
     stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [
-      {
-        internalType: 'address',
-        name: 'wallet',
-        type: 'address',
-      },
+      { internalType: 'address', name: '', type: 'address' },
+      { internalType: 'uint256', name: '', type: 'uint256' },
     ],
-    name: 'withdrawFunds',
-    outputs: [],
-    stateMutability: 'nonpayable',
+    name: 'userStakedByType',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
     type: 'function',
   },
   {
     inputs: [
-      {
-        internalType: 'contract IERC20',
-        name: 'token',
-        type: 'address',
-      },
-      {
-        internalType: 'address',
-        name: 'wallet',
-        type: 'address',
-      },
+      { internalType: 'address', name: '', type: 'address' },
+      { internalType: 'uint256', name: '', type: 'uint256' },
     ],
-    name: 'withdrawTokens',
-    outputs: [],
-    stateMutability: 'nonpayable',
+    name: 'userStakes',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
     type: 'function',
   },
   {
-    stateMutability: 'payable',
-    type: 'receive',
+    inputs: [{ internalType: 'address', name: '', type: 'address' }],
+    name: 'userTotalTokenStaked',
+    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { internalType: 'address', name: 'user', type: 'address' },
+      { internalType: 'uint256', name: 'stake', type: 'uint256' },
+    ],
+    name: 'withdrawUserTokens',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
   },
 ];
 

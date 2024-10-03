@@ -17,11 +17,11 @@ export class WebhookController {
 
   @Post('payment-received')
   handleWebhook(
-    @Body('data') data: PaymentReceivedDto[],
+    @Body() data: PaymentReceivedDto,
     @Query('chain') chain: ChainEnum,
   ) {
     console.log({paymentReceived: data});
-    return this.webhookService.paymentReceived(data[0], chain);
+    return this.webhookService.paymentReceived(data, chain);
   }
 
   @Post('referral-received')

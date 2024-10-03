@@ -42,15 +42,15 @@ export class TransactionController {
     return this.transactionService.signerSignature(messageHash);
   }
 
-  @Post('message-hash')
-  @UseGuards(JwtAuthGuard)
-  getMessageHash(
-    @Body('noonce') noonce: string,
-    @Body('receiver') receiver: string,
-    @Body('amount') amount: number,
-  ) {
-    return this.transactionService.getMessageHash(noonce, receiver, amount);
-  }
+  // @Post('message-hash')
+  // @UseGuards(JwtAuthGuard)
+  // getMessageHash(
+  //   @Body('noonce') noonce: string,
+  //   @Body('receiver') receiver: string,
+  //   @Body('amount') amount: number,
+  // ) {
+  //   return this.transactionService.getMessageHash(noonce, receiver, amount);
+  // }
 
   @Get('get-all')
   @UseGuards(JwtAuthGuard)

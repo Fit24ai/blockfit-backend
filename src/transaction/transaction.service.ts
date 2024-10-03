@@ -1,3 +1,4 @@
+// import { paymentContractAddress } from 'src/staking/libs/contract'
 import EthCrypto from 'eth-crypto';
 import { User } from './../users/schema/user.schema';
 import { Injectable } from '@nestjs/common';
@@ -11,19 +12,18 @@ import {
 } from 'src/types/transaction';
 import { ConfigService } from '@nestjs/config';
 import { Contract, JsonRpcProvider, parseEther } from 'ethers';
-import { paymentContractAddress } from 'src/staking/libs/contract';
-import { paymentAbi } from 'src/staking/libs/paymentAbi';
+import paymentAbi from 'src/ethers/libs/abi/paymentAbi';
 
 @Injectable()
 export class TransactionService {
   public readonly binanceProvider = new JsonRpcProvider(
     process.env.BINANCE_PRC_PROVIDER,
   );
-  public binancePaymentContract = new Contract(
-    paymentContractAddress,
-    paymentAbi,
-    this.binanceProvider,
-  );
+  // public binancePaymentContract = new Contract(
+  //   paymentContractAddress,
+  //   paymentAbi,
+  //   this.binanceProvider,
+  // );
   constructor(
     @InjectModel(Transaction.name) private Transaction: Model<Transaction>,
     private readonly configService: ConfigService,
@@ -79,16 +79,16 @@ export class TransactionService {
     return signature;
   }
 
-  async getMessageHash(noonce: string, receiver: string, amount: number) {
+  // async getMessageHash(noonce: string, receiver: string, amount: number) {
 
-    const amountInBigInt = parseEther(amount.toString());
-    console.log(amount)
-    console.log(amountInBigInt)
-    const messageHash = this.binancePaymentContract.hashTransaction(
-      noonce,
-      receiver,
-      amountInBigInt,
-    );
-    return messageHash;
-  }
+  //   const amountInBigInt = parseEther(amount.toString());
+  //   console.log(amount)
+  //   console.log(amountInBigInt)
+  //   const messageHash = this.binancePaymentContract.hashTransaction(
+  //     noonce,
+  //     receiver,
+  //     amountInBigInt,
+  //   );
+  //   return messageHash;
+  // }
 }

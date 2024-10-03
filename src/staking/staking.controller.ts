@@ -30,6 +30,18 @@ export class StakingController {
       poolType,
     );
   }
+  // @UseGuards(JwtAuthGuard)
+  @Post('create-stake/:txHash')
+  async createStakeTest(
+    @Param('txHash') txHash: string,
+    @Body() body: { walletAddress: string; poolType: number },
+  ) {
+    return this.stakingService.createStake(
+      txHash,
+      body.walletAddress,
+      body.poolType,
+    );
+  }
 
   @UseGuards(JwtAuthGuard)
   @Post('verify/:txHash')
@@ -40,6 +52,18 @@ export class StakingController {
     return this.stakingService.verifyStakingRecord(
       txHash,
       req.user.walletAddress,
+    );
+  }
+
+  // @UseGuards(JwtAuthGuard)
+  @Post('verify-stake/:txHash')
+  async createStakingRecordTest(
+    @Param('txHash') txHash: string,
+    @Body() body: { walletAddress: string },
+  ) {
+    return this.stakingService.verifyStakingRecord(
+      txHash,
+      body.walletAddress,
     );
   }
 
@@ -93,7 +117,6 @@ export class StakingController {
     return this.stakingService.getUserTotalTokenStaked(req.user.walletAddress);
   }
 
-
   @UseGuards(JwtAuthGuard)
   @Get('get-all-level-claimed-rewards')
   async getAllRefrralRewardClaimed(@Request() req: UserRequest) {
@@ -102,13 +125,10 @@ export class StakingController {
     );
   }
 
-
   @UseGuards(JwtAuthGuard)
   @Get('get-all-stake-claimed-rewards')
   async getAllStakeRewardClaimed(@Request() req: UserRequest) {
-    return this.stakingService.getAllStakeRewardClaimed(
-      req.user.walletAddress,
-    );
+    return this.stakingService.getAllStakeRewardClaimed(req.user.walletAddress);
   }
 
   @Get('get-total-members')

@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Staking } from './../staking/schema/staking.schema';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { TransferTokensDto } from '../transfer/dto/transferTokens.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import {
@@ -22,23 +23,29 @@ import { TransferService } from 'src/transfer/transfer.service';
 import { User } from 'src/users/schema/user.schema';
 import { ReferralTransaction } from './schema/referralTransaction.schema';
 import { ReferralReceivedDto } from './dto/referralReceived.dto';
+import { StakingTransaction } from 'src/staking-transaction/schema/stakingTransaction.schema';
+import { StakingService } from 'src/staking/staking.service';
+import { RedisClientType } from 'redis';
 
 @Injectable()
 export class WebhookService {
   constructor(
-    @InjectModel(Transaction.name) private Transaction: Model<Transaction>,
+    @InjectModel(StakingTransaction.name)
+    private Transaction: Model<StakingTransaction>,
     @InjectModel(ReferralTransaction.name)
     private ReferralTransaction: Model<ReferralTransaction>,
-
     @InjectModel(User.name) private User: Model<User>,
     private readonly ethersService: EthersService,
     private readonly transferService: TransferService,
+    private readonly stakingService: StakingService,
+    @Inject('REDIS_SERVICE')
+    private readonly redisService: RedisClientType,
   ) {}
 
-  private formatAddress(address: string): string {
-    return `0x${address.slice(2)}`;
-    // return address;
-  }
+  // private formatAddress(address: string): string {
+  //   return `0x${address.slice(2)}`;
+  //   // return address;
+  // }
 
   async verifyTransactionConditions(
     logs: LogDescription,
@@ -70,7 +77,17 @@ export class WebhookService {
         const EthLogs = this.ethersService.paymentInterface.parseLog(
           providerReceiptEth?.logs[providerReceiptEth.logs.length - 1]!,
         );
-        return this.verifyTransactionConditions(EthLogs, amount, user);
+
+        const poolTypeEth = Number(EthLogs.args[3]);
+        const aprEth = Number(EthLogs.args[4]);
+
+        const verifyEth = this.verifyTransactionConditions(
+          EthLogs,
+          amount,
+          user,
+        );
+
+        return { isValid: verifyEth, poolType: poolTypeEth, apr: aprEth };
 
       case ChainEnum.BINANCE:
         const providerReceiptBinance =
@@ -80,90 +97,148 @@ export class WebhookService {
         const BinanceLogs = this.ethersService.paymentInterface.parseLog(
           providerReceiptBinance?.logs[providerReceiptBinance.logs.length - 1]!,
         );
-        return this.verifyTransactionConditions(BinanceLogs, amount, user);
+        const poolTypeBinance = Number(BinanceLogs.args[3]);
+        const aprBinance = Number(BinanceLogs.args[4]);
+
+        const verifyBinance = this.verifyTransactionConditions(
+          BinanceLogs,
+          amount,
+          user,
+        );
+
+        return {
+          isValid: verifyBinance,
+          poolType: poolTypeBinance,
+          apr: aprBinance,
+        };
       default:
         throw new Error('Unsupported chain');
     }
   }
 
   async paymentReceived(paymentReceived: PaymentReceivedDto, chain: ChainEnum) {
-    const paymentReceivedFormatted: PaymentReceivedDto = {
-      id: this.formatAddress(paymentReceived.id),
-      amount: paymentReceived.amount,
-      token: this.formatAddress(paymentReceived.token),
-      user: this.formatAddress(paymentReceived.user),
-      block_number: paymentReceived.block_number,
-      block_timestamp: paymentReceived.block_timestamp,
-      transaction_hash: this.formatAddress(paymentReceived.transaction_hash),
-    };
-
-    let transaction = await this.Transaction.findOne({
-      transactionHash: {
-        $regex: paymentReceivedFormatted.transaction_hash,
-        $options: 'i',
+    console.log(paymentReceived)
+    const cache = await this.redisService.get(
+      `transaction:${paymentReceived.transaction_hash}-${ChainEnum.ETHEREUM}`,
+    );
+    if (cache) return;
+    await this.redisService.set(
+      `transaction:${paymentReceived.transaction_hash}-${ChainEnum.ETHEREUM}`,
+      'PROCESSING',
+      {
+        EX: 30,
       },
+    );
+    const transaction = await this.Transaction.findOne({
+      transactionHash: paymentReceived.transaction_hash,
     });
+    console.log("transaction")
+    console.log(transaction)
 
-    if (transaction.distributionStatus === DistributionStatusEnum.DISTRIBUTED ||  transaction.distributionStatus === DistributionStatusEnum.PROCESSING)
+    if (
+
+      transaction.distributionStatus === DistributionStatusEnum.DISTRIBUTED ||
+      transaction.distributionStatus === DistributionStatusEnum.PROCESSING
+    ) {
+      await this.redisService.del(
+        `transaction:${transaction.transactionHash}-${chain}`,
+      );
       throw new BadRequestException('Already received transaction');
-
-    if (!transaction) {
-      // throw new BadRequestException({
-      //   success: false,
-      //   message: 'Transaction not found',
-      // });
-      let user = await this.User.findOne({
-        walletAddress: paymentReceived.user,
-      });
-      if (!user) {
-        user = await this.User.create({
-          walletAddress: paymentReceived.user,
-        });
-      }
-      transaction = await this.Transaction.create({
-        transactionHash: paymentReceivedFormatted.transaction_hash,
-        amountBigNumber: paymentReceivedFormatted.amount,
-        tokenAddress: paymentReceivedFormatted.token,
-        chain: chain,
-        user: user._id,
-        transactionStatus: TransactionStatusEnum.CONFIRMED,
-        distributionStatus: DistributionStatusEnum.PROCESSING,
-      });
+    } else {
+      transaction.distributionStatus = DistributionStatusEnum.PROCESSING;
+      await transaction.save();
     }
 
-    const isValid = await this.verifyTransaction(
+    // if (!transaction) {
+    //   // throw new BadRequestException({
+    //   //   success: false,
+    //   //   message: 'Transaction not found',
+    //   // });
+    //   let user = await this.User.findOne({
+    //     walletAddress: paymentReceived.user,
+    //   });
+    //   if (!user) {
+    //     user = await this.User.create({
+    //       walletAddress: paymentReceived.user,
+    //     });
+    //   }
+    //   transaction = await this.Transaction.create({
+    //     transactionHash: paymentReceived.transaction_hash,
+    //     amountBigNumber: paymentReceived.amount,
+    //     tokenAddress: paymentReceived.token,
+    //     chain: chain,
+    //     user: user._id,
+    //     transactionStatus: TransactionStatusEnum.CONFIRMED,
+    //     distributionStatus: DistributionStatusEnum.PROCESSING,
+    //   });
+    // }
+
+    console.log("valid Check")
+
+    const { isValid, poolType, apr } = await this.verifyTransaction(
       transaction.chain,
       transaction.transactionHash,
-      paymentReceivedFormatted.amount,
-      paymentReceivedFormatted.user,
+      paymentReceived.amount,
+      paymentReceived.user,
     );
+    console.log(isValid)
 
     if (!isValid) {
+      await this.redisService.del(
+        `transaction:${transaction.transactionHash}-${chain}`,
+      );
+      transaction.distributionStatus = DistributionStatusEnum.PENDING;
+      await transaction.save();
       throw new BadRequestException({
         success: false,
         message: 'Invalid transaction',
       });
     }
 
+    transaction.poolType = poolType;
+    transaction.apr = apr;
     transaction.transactionStatus = TransactionStatusEnum.CONFIRMED;
     transaction.distributionStatus = DistributionStatusEnum.PROCESSING;
     transaction.amountBigNumber = String(paymentReceived.amount);
-    transaction.tokenAddress = paymentReceivedFormatted.token;
+    transaction.tokenAddress = paymentReceived.token;
 
     await transaction.save();
-    const { txHash, amount } = await this.transferService.transferTokens({
-      walletAddress: paymentReceivedFormatted.user,
-      purchaseAmount:
-        transaction.chain === ChainEnum.BINANCE
-          ? BigInt(paymentReceivedFormatted.amount)
-          : parseEther(formatUnits(paymentReceivedFormatted.amount, 6)),
-      transactionHash: paymentReceivedFormatted.transaction_hash,
-    });
+    try {
+      const { txHash } = await this.transferService.transferTokens({
+        walletAddress: paymentReceived.user,
+        purchaseAmount:
+          transaction.chain === ChainEnum.BINANCE
+            ? BigInt(paymentReceived.amount)
+            : parseEther(formatUnits(paymentReceived.amount, 6)),
+        transactionHash: paymentReceived.transaction_hash,
+        poolType: poolType,
+        apr: apr,
+      });
 
-    transaction.distributionHash = txHash;
-    transaction.distributionStatus = DistributionStatusEnum.DISTRIBUTED;
-    transaction.tokenAmount = amount;
+      transaction.distributionHash = txHash;
+      transaction.distributionStatus = DistributionStatusEnum.DISTRIBUTED;
+      transaction.tokenAmount = paymentReceived.amount;
 
+      await this.stakingService.createStake(
+        txHash,
+        paymentReceived.user,
+        poolType,
+      );
+      console.log(4)
+      await this.stakingService.verifyStakingRecord(
+        txHash,
+        paymentReceived.user,
+      );
+
+      console.log(5)
+
+      console.log("done")
+    } catch (error) {
+      transaction.distributionStatus = DistributionStatusEnum.PENDING;
+    }
+    await this.redisService.del(
+      `transaction:${transaction.transactionHash}-${chain}`,
+    );
     await transaction.save();
     return { message: 'Success' };
   }
@@ -173,12 +248,12 @@ export class WebhookService {
     chain: ChainEnum,
   ) {
     const referralReceivedFormatted: ReferralReceivedDto = {
-      referrer: this.formatAddress(referralReceived.referrer),
-      buyer: this.formatAddress(referralReceived.buyer),
+      referrer: referralReceived.referrer,
+      buyer: referralReceived.buyer,
       buy_amount: referralReceived.buy_amount,
       referral_income: referralReceived.referral_income,
-      token: this.formatAddress(referralReceived.token),
-      transaction_hash: this.formatAddress(referralReceived.transaction_hash),
+      token: referralReceived.token,
+      transaction_hash: referralReceived.transaction_hash,
       block_number: referralReceived.block_number,
       block_timestamp: referralReceived.block_timestamp,
     };

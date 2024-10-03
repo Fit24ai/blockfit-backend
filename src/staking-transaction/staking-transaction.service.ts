@@ -94,93 +94,93 @@ export class StakingTransactionService {
     }
   }
 
-  async paymentReceived(paymentReceived: PaymentReceivedDto, chain: ChainEnum) {
-    const paymentReceivedFormatted: PaymentReceivedDto = {
-      id: this.formatAddress(paymentReceived.id),
-      amount: paymentReceived.amount,
-      token: this.formatAddress(paymentReceived.token),
-      user: this.formatAddress(paymentReceived.user),
-      block_number: paymentReceived.block_number,
-      block_timestamp: paymentReceived.block_timestamp,
-      transaction_hash: this.formatAddress(paymentReceived.transaction_hash),
-    };
+  // async paymentReceived(paymentReceived: PaymentReceivedDto, chain: ChainEnum) {
+  //   const paymentReceivedFormatted: PaymentReceivedDto = {
+  //     id: this.formatAddress(paymentReceived.id),
+  //     amount: paymentReceived.amount,
+  //     token: this.formatAddress(paymentReceived.token),
+  //     user: this.formatAddress(paymentReceived.user),
+  //     block_number: paymentReceived.block_number,
+  //     block_timestamp: paymentReceived.block_timestamp,
+  //     transaction_hash: this.formatAddress(paymentReceived.transaction_hash),
+  //   };
 
-    let transaction = await this.Transaction.findOne({
-      transactionHash: {
-        $regex: paymentReceivedFormatted.transaction_hash,
-        $options: 'i',
-      },
-    });
+  //   let transaction = await this.Transaction.findOne({
+  //     transactionHash: {
+  //       $regex: paymentReceivedFormatted.transaction_hash,
+  //       $options: 'i',
+  //     },
+  //   });
 
-    if (
-      transaction.distributionStatus === DistributionStatusEnum.DISTRIBUTED ||
-      transaction.distributionStatus === DistributionStatusEnum.PROCESSING
-    )
-      throw new BadRequestException('Already received transaction');
+  //   if (
+  //     transaction.distributionStatus === DistributionStatusEnum.DISTRIBUTED ||
+  //     transaction.distributionStatus === DistributionStatusEnum.PROCESSING
+  //   )
+  //     throw new BadRequestException('Already received transaction');
 
-    if (!transaction) {
-      // throw new BadRequestException({
-      //   success: false,
-      //   message: 'Transaction not found',
-      // });
-      let user = await this.User.findOne({
-        walletAddress: paymentReceived.user,
-      });
-      if (!user) {
-        user = await this.User.create({
-          walletAddress: paymentReceived.user,
-        });
-      }
-      transaction = await this.Transaction.create({
-        transactionHash: paymentReceivedFormatted.transaction_hash,
-        amountBigNumber: paymentReceivedFormatted.amount,
-        tokenAddress: paymentReceivedFormatted.token,
-        chain: chain,
-        user: user._id,
-        transactionStatus: TransactionStatusEnum.CONFIRMED,
-        distributionStatus: DistributionStatusEnum.PROCESSING,
-      });
-    }
+  //   if (!transaction) {
+  //     // throw new BadRequestException({
+  //     //   success: false,
+  //     //   message: 'Transaction not found',
+  //     // });
+  //     let user = await this.User.findOne({
+  //       walletAddress: paymentReceived.user,
+  //     });
+  //     if (!user) {
+  //       user = await this.User.create({
+  //         walletAddress: paymentReceived.user,
+  //       });
+  //     }
+  //     transaction = await this.Transaction.create({
+  //       transactionHash: paymentReceivedFormatted.transaction_hash,
+  //       amountBigNumber: paymentReceivedFormatted.amount,
+  //       tokenAddress: paymentReceivedFormatted.token,
+  //       chain: chain,
+  //       user: user._id,
+  //       transactionStatus: TransactionStatusEnum.CONFIRMED,
+  //       distributionStatus: DistributionStatusEnum.PROCESSING,
+  //     });
+  //   }
 
-    const isValid = await this.verifyTransaction(
-      transaction.chain,
-      transaction.transactionHash,
-      paymentReceivedFormatted.amount,
-      paymentReceivedFormatted.user,
-    );
+  //   const isValid = await this.verifyTransaction(
+  //     transaction.chain,
+  //     transaction.transactionHash,
+  //     paymentReceivedFormatted.amount,
+  //     paymentReceivedFormatted.user,
+  //   );
 
-    if (!isValid) {
-      throw new BadRequestException({
-        success: false,
-        message: 'Invalid transaction',
-      });
-    }
+  //   if (!isValid) {
+  //     throw new BadRequestException({
+  //       success: false,
+  //       message: 'Invalid transaction',
+  //     });
+  //   }
 
-    transaction.transactionStatus = TransactionStatusEnum.CONFIRMED;
-    transaction.distributionStatus = DistributionStatusEnum.PROCESSING;
-    transaction.amountBigNumber = String(paymentReceived.amount);
-    transaction.tokenAddress = paymentReceivedFormatted.token;
+  //   transaction.transactionStatus = TransactionStatusEnum.CONFIRMED;
+  //   transaction.distributionStatus = DistributionStatusEnum.PROCESSING;
+  //   transaction.amountBigNumber = String(paymentReceived.amount);
+  //   transaction.tokenAddress = paymentReceivedFormatted.token;
 
-    await transaction.save();
+  //   await transaction.save();
 
-    // const { txHash, amount } = await this.transferTokens({
-    //   walletAddress: paymentReceivedFormatted.user,
-    //   purchaseAmount:
-    //     transaction.chain === ChainEnum.BINANCE
-    //       ? BigInt(paymentReceivedFormatted.amount)
-    //       : parseEther(formatUnits(paymentReceivedFormatted.amount, 6)),
-    //   transactionHash: paymentReceivedFormatted.transaction_hash,
-    //   poolType: transaction.poolType,
-    //   apr: transaction.apr,
-    // });
+  //   // const { txHash, amount } = await this.transferTokens({
+  //   //   walletAddress: paymentReceivedFormatted.user,
+  //   //   purchaseAmount:
+  //   //     transaction.chain === ChainEnum.BINANCE
+  //   //       ? BigInt(paymentReceivedFormatted.amount)
+  //   //       : parseEther(formatUnits(paymentReceivedFormatted.amount, 6)),
+  //   //   transactionHash: paymentReceivedFormatted.transaction_hash,
+  //   //   poolType: transaction.poolType,
+  //   //   apr: transaction.apr,
+  //   // });
 
-    // transaction.distributionHash = txHash;
-    // transaction.distributionStatus = DistributionStatusEnum.DISTRIBUTED;
-    // transaction.tokenAmount = amount;
+  //   // transaction.distributionHash = txHash;
+  //   // transaction.distributionStatus = DistributionStatusEnum.DISTRIBUTED;
+  //   // transaction.tokenAmount = amount;
 
-    await transaction.save();
-    return { message: 'Success' };
-  }
+  //   await transaction.save();
+  //   return { message: 'Success' };
+  // }
 
   async getTransaction(transactionHash: string): Promise<Transaction> {
     return this.Transaction.findOne({

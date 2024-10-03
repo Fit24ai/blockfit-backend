@@ -33,29 +33,36 @@ export class TransferService {
   async transferTokens(transferBody: TransferTokensDto) {
     const { walletAddress, purchaseAmount, transactionHash } = transferBody;
     try {
-      const noonce = v4();
-      const messageHash = solidityPackedKeccak256(
-        ['string', 'address', 'uint256'],
-        [noonce, walletAddress, purchaseAmount],
+      // const noonce = v4();
+      // const messageHash = solidityPackedKeccak256(
+      //   ['string', 'address', 'uint256'],
+      //   [noonce, walletAddress, purchaseAmount],
+      // );
+      console.log(
+        String(purchaseAmount),
+        walletAddress,
+        String(transferBody.poolType),
+        String(transferBody.apr),
+        
       );
 
-      const tx = await this.ethersService.signedIcoContract.buyToken(
-        purchaseAmount,
+      const tx = await this.ethersService.signedBuyContract.buyToken(
+        String(purchaseAmount),
         walletAddress,
-        noonce,
-        await this.signerSignature(messageHash),
+        String(transferBody.poolType),
+        String(transferBody.apr),
       );
 
       await tx.wait();
 
       const receipt =
         await this.ethersService.icoProvider.getTransactionReceipt(tx.hash);
-      const parsedLog = this.ethersService.icoInterface.parseLog(
-        receipt?.logs[2]!,
-      );
-      return { txHash: tx.hash, amount: parsedLog.args[2] };
+      // const parsedLog = this.ethersService.icoInterface.parseLog(
+      //   receipt?.logs[2]!,
+      // );
+      return { txHash: tx.hash };
     } catch (error) {
-      console.log({error});
+      console.log({ error });
       throw error;
     }
   }

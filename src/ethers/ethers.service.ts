@@ -2,13 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { Contract, Interface, JsonRpcProvider, Wallet } from 'ethers';
 import {
   BinancePaymentContract,
+  buyContract,
   EthereumPaymentContract,
+  fit24ReferralContractAddress,
   IcoContract,
 } from './libs/contracts';
 import icoAbi from './libs/abi/icoAbi';
 import paymentAbi from './libs/abi/paymentAbi';
 import { ChainEnum } from 'src/types/transaction';
 import stakingAbi from './libs/abi/stakingAbi';
+import { referralAbi } from './libs/abi/referralAbi';
+import { buyAbi } from './libs/abi/buyAbi';
 
 @Injectable()
 export class EthersService {
@@ -29,6 +33,15 @@ export class EthersService {
 
   public icoContract = new Contract(IcoContract, icoAbi, this.icoProvider);
   public signedIcoContract = new Contract(IcoContract, icoAbi, this.signer);
+
+  public signedBuyContract = new Contract(
+    buyContract, buyAbi, this.signer
+  )
+  public referralContract = new Contract(
+    fit24ReferralContractAddress,
+    referralAbi,
+    this.binanceProvider,
+  );
 
   public ethereumPaymentContract = new Contract(
     EthereumPaymentContract,
