@@ -40,7 +40,7 @@ export class EthersService {
   public referralContract = new Contract(
     fit24ReferralContractAddress,
     referralAbi,
-    this.binanceProvider,
+    this.icoProvider,
   );
 
   public ethereumPaymentContract = new Contract(
