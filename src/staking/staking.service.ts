@@ -810,7 +810,7 @@ export class StakingService {
   async registerReferral(userAddress: string, refAddress: string) {
     try {
       const tx =
-        await this.ethersService.signedReferralContract.registerReferrer(
+        await this.ethersService.signedReferralContract.register(
           userAddress,
           refAddress,
         );
