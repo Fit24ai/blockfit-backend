@@ -16,3 +16,10 @@ export enum DistributionStatusEnum {
   FAILED = 'FAILED',
   PROCESSING = 'PROCESSING',
 }
+
+export enum StakingStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  STAKED = 'STAKED',
+  FAILED = 'FAILED',
+}

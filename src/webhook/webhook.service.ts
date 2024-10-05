@@ -13,6 +13,7 @@ import { Model } from 'mongoose';
 import {
   ChainEnum,
   DistributionStatusEnum,
+  StakingStatus,
   TransactionStatusEnum,
 } from 'src/types/transaction';
 import { EthersService } from 'src/ethers/ethers.service';
@@ -117,7 +118,7 @@ export class WebhookService {
   }
 
   async paymentReceived(paymentReceived: PaymentReceivedDto, chain: ChainEnum) {
-    console.log(paymentReceived)
+    console.log(paymentReceived);
     const cache = await this.redisService.get(
       `transaction:${paymentReceived.transaction_hash}-${ChainEnum.ETHEREUM}`,
     );
@@ -132,11 +133,10 @@ export class WebhookService {
     const transaction = await this.Transaction.findOne({
       transactionHash: paymentReceived.transaction_hash,
     });
-    console.log("transaction")
-    console.log(transaction)
+    console.log('transaction');
+    console.log(transaction);
 
     if (
-
       transaction.distributionStatus === DistributionStatusEnum.DISTRIBUTED ||
       transaction.distributionStatus === DistributionStatusEnum.PROCESSING
     ) {
@@ -173,7 +173,7 @@ export class WebhookService {
     //   });
     // }
 
-    console.log("valid Check")
+    console.log('valid Check');
 
     const { isValid, poolType, apr } = await this.verifyTransaction(
       transaction.chain,
@@ -181,7 +181,7 @@ export class WebhookService {
       paymentReceived.amount,
       paymentReceived.user,
     );
-    console.log(isValid)
+    console.log(isValid);
 
     if (!isValid) {
       await this.redisService.del(
@@ -218,28 +218,45 @@ export class WebhookService {
       transaction.distributionHash = txHash;
       transaction.distributionStatus = DistributionStatusEnum.DISTRIBUTED;
       transaction.tokenAmount = paymentReceived.amount;
+      await transaction.save();
 
-      await this.stakingService.createStake(
-        txHash,
-        paymentReceived.user,
-        poolType,
-      );
-      console.log(4)
-      await this.stakingService.verifyStakingRecord(
-        txHash,
-        paymentReceived.user,
-      );
-
-      console.log(5)
-
-      console.log("done")
+      // await this.stakingService.createStake(
+      //   txHash,
+      //   paymentReceived.user,
+      //   poolType,
+      // );
+      // await this.stakingService.verifyStakingRecord(
+      //   txHash,
+      //   paymentReceived.user,
+      // );
     } catch (error) {
-      transaction.distributionStatus = DistributionStatusEnum.PENDING;
+      console.log(error);
+      transaction.distributionStatus = DistributionStatusEnum.FAILED;
+      await transaction.save();
+    }
+
+    if (transaction.distributionStatus === DistributionStatusEnum.DISTRIBUTED) {
+      try {
+        await this.stakingService.createStake(
+          transaction.distributionHash,
+          paymentReceived.user,
+          poolType,
+        );
+        await this.stakingService.verifyStakingRecord(
+          transaction.distributionHash,
+          paymentReceived.user,
+        );
+        transaction.stakingStatus = StakingStatus.STAKED;
+        await transaction.save();
+      } catch (error) {
+        console.log(error)
+        transaction.stakingStatus = StakingStatus.FAILED;
+        await transaction.save();
+      }
     }
     await this.redisService.del(
       `transaction:${transaction.transactionHash}-${chain}`,
     );
-    await transaction.save();
     return { message: 'Success' };
   }
 

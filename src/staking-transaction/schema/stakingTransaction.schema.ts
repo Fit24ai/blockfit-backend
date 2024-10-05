@@ -3,6 +3,7 @@ import { HydratedDocument, Types } from 'mongoose';
 import {
   ChainEnum,
   DistributionStatusEnum,
+  StakingStatus,
   TransactionStatusEnum,
 } from 'src/types/transaction';
 
@@ -52,6 +53,14 @@ export class StakingTransaction {
     default: DistributionStatusEnum.PENDING,
   })
   distributionStatus: DistributionStatusEnum;
+
+  @Prop({
+    type: String,
+    enum: StakingStatus,
+    required: true,
+    default: StakingStatus.PENDING,
+  })
+  stakingStatus: StakingStatus;
 }
 
 export const StakingTransactionSchema =
