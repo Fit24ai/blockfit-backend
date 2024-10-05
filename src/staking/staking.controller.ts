@@ -172,4 +172,10 @@ export class StakingController {
   async getReferrer(@Request() req: UserRequest) {
     return this.stakingService.getReferrer(req.user.walletAddress);
   }
+
+  @Post('register-referral')
+  // @UseGuards(JwtAuthGuard)
+  async registerReferral(@Body() body: { userAddress: string , refAddress: string}) {
+    return this.stakingService.registerReferral(body.userAddress, body.refAddress);
+  }
 }

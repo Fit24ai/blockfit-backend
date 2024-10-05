@@ -33,6 +33,11 @@ export class EthersService {
 
   public icoContract = new Contract(IcoContract, icoAbi, this.icoProvider);
   public signedIcoContract = new Contract(IcoContract, icoAbi, this.signer);
+  public signedReferralContract = new Contract(
+    fit24ReferralContractAddress,
+    referralAbi,
+    this.signer,
+  )
 
   public signedBuyContract = new Contract(
     buyContract, buyAbi, this.signer

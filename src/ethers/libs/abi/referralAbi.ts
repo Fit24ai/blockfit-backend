@@ -199,6 +199,25 @@ export const referralAbi = [
         type: 'address',
       },
     ],
+    name: 'getRefreesList',
+    outputs: [
+      {
+        internalType: 'address[]',
+        name: 'users',
+        type: 'address[]',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'user',
+        type: 'address',
+      },
+    ],
     name: 'getStakeAmount',
     outputs: [
       {
@@ -320,6 +339,11 @@ export const referralAbi = [
     inputs: [
       {
         internalType: 'address',
+        name: 'user',
+        type: 'address',
+      },
+      {
+        internalType: 'address',
         name: 'referrer',
         type: 'address',
       },
@@ -337,6 +361,24 @@ export const referralAbi = [
     type: 'function',
   },
   {
+    inputs: [
+      {
+        internalType: 'address',
+        name: 'user',
+        type: 'address',
+      },
+      {
+        internalType: 'bool',
+        name: 'isTop',
+        type: 'bool',
+      },
+    ],
+    name: 'setTop',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
     inputs: [],
     name: 'stakingContract',
     outputs: [
@@ -344,6 +386,25 @@ export const referralAbi = [
         internalType: 'address',
         name: '',
         type: 'address',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'address',
+        name: '',
+        type: 'address',
+      },
+    ],
+    name: 'topAccount',
+    outputs: [
+      {
+        internalType: 'bool',
+        name: '',
+        type: 'bool',
       },
     ],
     stateMutability: 'view',

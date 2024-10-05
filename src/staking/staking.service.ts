@@ -48,12 +48,12 @@ export class StakingService {
       txHash,
       walletAddress: { $regex: walletAddress, $options: 'i' },
     });
-    console.log(1)
+    console.log(1);
 
     if (isStakeExist) {
       throw new ConflictException('Transaction already exists');
     }
-    console.log(2)
+    console.log(2);
     const stakeDuration = await this.StakeDurationModel.findOne({
       poolType,
     });
@@ -66,7 +66,7 @@ export class StakingService {
       startTime: Math.floor(Date.now() / 1000),
       stakeDuration: stakeDuration.duration,
     });
-    console.log(3)
+    console.log(3);
     return {
       message: 'Stake create successfully',
     };
@@ -113,8 +113,6 @@ export class StakingService {
       (log) => log.topics[0] === process.env.REFERRAL_TOPIC,
     );
 
-
-
     const stakeDuration = await this.StakeDurationModel.findOne({
       poolType: Number(stakedLogs.args[3]),
     });
@@ -122,7 +120,6 @@ export class StakingService {
     if (!stakeDuration) {
       throw new Error('Stake duration not found');
     }
-
 
     if (filteredLogs.length > 0) {
       const refStakedLogs = await Promise.all(
@@ -141,7 +138,7 @@ export class StakingService {
             amount: this.BigToNumber(parsedLog[1]),
             apr: Number(idToStake[2]) / 10,
             poolType: Number(idToStake[3]),
-            startTime: Number(stakedLogs.args[4]), 
+            startTime: Number(stakedLogs.args[4]),
             stakeDuration: stakeDuration.duration,
             txHash,
             isReferred: true,
@@ -788,8 +785,7 @@ export class StakingService {
   }
   async getTotalNetworkWithdrawals() {
     try {
-      const tokens =
-        await this.ethersService.icoContract.totalClaimed();
+      const tokens = await this.ethersService.icoContract.totalClaimed();
       // console.log(tokens);
       return Number(formatUnits(tokens, 18));
     } catch (error) {
@@ -809,5 +805,26 @@ export class StakingService {
       await this.ethersService.referralContract.getReferrer(address);
     // console.log(referrer);
     return referrer;
+  }
+
+  async registerReferral(userAddress: string, refAddress: string) {
+    try {
+      const tx =
+        await this.ethersService.signedReferralContract.registerReferrer(
+          userAddress,
+          refAddress,
+        );
+      await tx.wait();
+      return {
+        success: true,
+        message: 'Successfully registered referrer',
+      };
+    } catch (error) {
+      console.log(error);
+      return {
+        success: false,
+        message: 'Error registering referrer',
+      };
+    }
   }
 }
