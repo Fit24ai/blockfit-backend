@@ -141,7 +141,7 @@ export class StakingService {
             amount: this.BigToNumber(parsedLog[1]),
             apr: Number(idToStake[2]) / 10,
             poolType: Number(idToStake[3]),
-            startTime: Number(stakedLogs.args[4]), // Changed from stakedLogs.args[4] to parsedLog[4]
+            startTime: Number(stakedLogs.args[4]), 
             stakeDuration: stakeDuration.duration,
             txHash,
             isReferred: true,
