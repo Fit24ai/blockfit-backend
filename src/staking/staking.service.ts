@@ -204,7 +204,7 @@ export class StakingService {
   }
 
   async createClaimedRewardForStake(txHash: string) {
-    // console.log(txHash);
+    console.log(txHash);
     const txExist = await this.claimedRewardForStakeModel.find({
       txHash: { $regex: txHash, $options: 'i' },
     });
@@ -212,15 +212,15 @@ export class StakingService {
       throw new ConflictException('transaction already exists');
     }
     const receipt =
-      await this.ethersService.binanceProvider.getTransactionReceipt(txHash);
+      await this.ethersService.icoProvider.getTransactionReceipt(txHash);
 
-    // console.log(receipt.logs)
+    console.log(receipt.logs)
 
     const filteredLogs = receipt.logs.filter(
       (log) => log.topics[0] === process.env.REWARD_CLAIMED_TOPIC,
     );
 
-    // console.log(filteredLogs);
+    console.log(filteredLogs);
 
     if (!filteredLogs.length) {
       throw new NotFoundException('No Reward found');
@@ -228,8 +228,8 @@ export class StakingService {
 
     const claimedRewards: IClaimedRewardForStake[] = filteredLogs.map((log) => {
       const parsedLog = this.ethersService.stakingInterface.parseLog(log).args;
-      // console.log(log);
-      // console.log('parsed', parsedLog);
+      console.log(log);
+      console.log('parsed', parsedLog);
       const formattedClaimedLog: IClaimedRewardForStake = {
         stakeId: Number(parsedLog[0]),
         walletAddress: parsedLog[1],
@@ -239,7 +239,7 @@ export class StakingService {
         txHash,
       };
 
-      // console.log(formattedClaimedLog);
+      console.log(formattedClaimedLog);
 
       return formattedClaimedLog;
     });

@@ -83,6 +83,12 @@ export class StakingController {
   async createClaimedRewardForStake(@Param('txHash') txHash: string) {
     return this.stakingService.createClaimedRewardForStake(txHash);
   }
+  @Post('create-claimed-reward-for-test-stake/:txHash')
+  async createClimedRewardForTest(@Param('txHash') txHash: string) {
+    return this.stakingService.createClaimedRewardForStake(txHash);
+  }
+
+
 
   @UseGuards(JwtAuthGuard)
   @Get('get-all-claimed-rewards')
