@@ -19,7 +19,7 @@ import {
 import { StakeDuration } from './schema/stakeDuration.schema';
 import { ClaimedRewardForStakeHistory } from './schema/claimedRewardForStakeHistory.schema';
 import { IRefStakeLogs, IClaimedRewardForStake } from './types/logs';
-import { TransactionStatusEnum } from 'src/types/transaction';
+import { ChainEnum, TransactionStatusEnum } from 'src/types/transaction';
 import { ClaimedHistory } from './schema/claimedHistory.schema';
 
 @Injectable()
@@ -809,11 +809,10 @@ export class StakingService {
 
   async registerReferral(userAddress: string, refAddress: string) {
     try {
-      const tx =
-        await this.ethersService.signedReferralContract.register(
-          userAddress,
-          refAddress,
-        );
+      const tx = await this.ethersService.signedReferralContract.register(
+        userAddress,
+        refAddress,
+      );
       await tx.wait();
       return {
         success: true,
@@ -825,6 +824,36 @@ export class StakingService {
         success: false,
         message: 'Error registering referrer',
       };
+    }
+  }
+
+  async verifyPayment(txHash: string, chain: ChainEnum) {
+    try {
+      if (chain === ChainEnum.BINANCE) {
+        const receipt =
+          await this.ethersService.binanceProvider.waitForTransaction(txHash);
+        console.log('BInance');
+        return {
+          success: true,
+        };
+      } else if (chain === ChainEnum.ETHEREUM) {
+        const receipt =
+          await this.ethersService.ethereumProvider.waitForTransaction(txHash);
+        console.log('ETHEREUM');
+        return {
+          success: true,
+        };
+      } else {
+        const receipt =
+          this.ethersService.icoProvider.waitForTransaction(txHash);
+        console.log('BLOKFIT');
+        return {
+          success: true,
+        };
+      }
+    } catch (error) {
+      console.log(error);
+      return { success: false };
     }
   }
 }

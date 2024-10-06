@@ -9,6 +9,7 @@
 
 //   export const buyContract = '0x4455d9a0644B60624771eE36E2e6d95FB47Ecdb6';
 
+
 // * PROD
 export const IcoContract = '0x6a9f5Dae49b4414DFd32Cfd2aEea6f809E9CDE81';
 export const EthereumPaymentContract =

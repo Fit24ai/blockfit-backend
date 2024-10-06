@@ -12,6 +12,7 @@ import { StakingService } from './staking.service';
 import { StakeDuration } from './schema/stakeDuration.schema';
 import { JwtAuthGuard } from 'src/passport/passport.guard';
 import { UserRequest } from 'src/types/user';
+import { ChainEnum } from 'src/types/transaction';
 
 @Controller('staking')
 export class StakingController {
@@ -61,10 +62,7 @@ export class StakingController {
     @Param('txHash') txHash: string,
     @Body() body: { walletAddress: string },
   ) {
-    return this.stakingService.verifyStakingRecord(
-      txHash,
-      body.walletAddress,
-    );
+    return this.stakingService.verifyStakingRecord(txHash, body.walletAddress);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -175,7 +173,20 @@ export class StakingController {
 
   @Post('register-referral')
   // @UseGuards(JwtAuthGuard)
-  async registerReferral(@Body() body: { userAddress: string , refAddress: string}) {
-    return this.stakingService.registerReferral(body.userAddress, body.refAddress);
+  async registerReferral(
+    @Body() body: { userAddress: string; refAddress: string },
+  ) {
+    return this.stakingService.registerReferral(
+      body.userAddress,
+      body.refAddress,
+    );
+  }
+
+  @Post('verify-payment-transaction/:txHash')
+  async verifyPaymentTransaction(
+    @Param('txHash') txHash: string,
+    @Body() body: { chain: ChainEnum },
+  ) {
+    return this.stakingService.verifyPayment(txHash, body.chain);
   }
 }
