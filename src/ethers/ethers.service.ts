@@ -16,12 +16,12 @@ import { buyAbi } from './libs/abi/buyAbi';
 
 @Injectable()
 export class EthersService {
-  // public readonly icoProvider = new JsonRpcProvider(
-  //   process.env.ICO_PRC_PROVIDER,
-  // );
   public readonly icoProvider = new JsonRpcProvider(
-    process.env.BINANCE_PRC_PROVIDER,
+    process.env.ICO_PRC_PROVIDER,
   );
+  // public readonly icoProvider = new JsonRpcProvider(
+  //   process.env.BINANCE_PRC_PROVIDER,
+  // );
   public readonly ethereumProvider = new JsonRpcProvider(
     process.env.ETHEREUM_PRC_PROVIDER,
   );
