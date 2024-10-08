@@ -40,11 +40,9 @@ export class EthersService {
     fit24ReferralContractAddress,
     referralAbi,
     this.signer,
-  )
+  );
 
-  public signedBuyContract = new Contract(
-    buyContract, buyAbi, this.signer
-  )
+  public signedBuyContract = new Contract(buyContract, buyAbi, this.signer);
   public referralContract = new Contract(
     fit24ReferralContractAddress,
     referralAbi,

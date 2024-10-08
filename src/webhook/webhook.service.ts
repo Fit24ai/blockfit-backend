@@ -69,7 +69,7 @@ export class WebhookService {
     amount: string,
     user: string,
   ) {
-    console.log(chain)
+    console.log(chain);
     switch (chain) {
       case ChainEnum.ETHEREUM:
         const providerReceiptEth =
@@ -96,16 +96,16 @@ export class WebhookService {
           await this.ethersService.binanceProvider.getTransactionReceipt(
             transactionHash,
           );
-          console.log("providerReceiptBinance", providerReceiptBinance)
+        console.log('providerReceiptBinance', providerReceiptBinance);
         const BinanceLogs = this.ethersService.paymentInterface.parseLog(
           providerReceiptBinance?.logs[providerReceiptBinance.logs.length - 1]!,
         );
 
-        console.log("BinanceLogs", BinanceLogs)
+        console.log('BinanceLogs', BinanceLogs);
         const poolTypeBinance = Number(BinanceLogs.args[3]);
         const aprBinance = Number(BinanceLogs.args[4]);
 
-        console.log("new")
+        console.log('new');
 
         const verifyBinance = this.verifyTransactionConditions(
           BinanceLogs,
@@ -255,7 +255,7 @@ export class WebhookService {
         transaction.stakingStatus = StakingStatus.STAKED;
         await transaction.save();
       } catch (error) {
-        console.log(error)
+        console.log(error);
         transaction.stakingStatus = StakingStatus.FAILED;
         await transaction.save();
       }
