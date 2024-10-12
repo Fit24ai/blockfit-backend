@@ -24,3 +24,13 @@ export interface IClaimedRewardForStake {
   poolType?: number;
   isReferred?: boolean;
 }
+
+export interface StakeIncome {
+  stake: any; // Adjust the type based on your stake schema
+  referralIncome: number;
+}
+
+export interface ReferralIncomeResult {
+  member: string;
+  stakeIncomes: StakeIncome[]; // Array of stakes and their respective incomes
+}

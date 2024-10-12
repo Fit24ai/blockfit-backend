@@ -11,11 +11,11 @@
 
 
 // * PROD
-export const IcoContract = '0x3363f5F57dE6adF73Aabb946DE63aD87C61664df';
+export const IcoContract = '0x816B54c9596b3Eb19dD6D3064F894C24388Ad700';
 export const EthereumPaymentContract =
   '0x8B7547c84D435e96812b54B7d2AaEA48D4c49EDB';
 export const BinancePaymentContract =
   '0x72e56adb351Bc1DA1A37B2C5bB6cA40fBB373322';
     export const fit24ReferralContractAddress =
-  '0x082dEFbf3D076917B9DD6F0926E251eD96b50cbd';
+  '0xe486A621eD93178D9A68d0fa317FF19Da20c5BdB';
 export const buyContract = '0x49DE6A49A3BC99669c13d5d6dCa7C39d1B7a1379';

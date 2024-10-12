@@ -32,17 +32,17 @@ export class StakingController {
     );
   }
   // @UseGuards(JwtAuthGuard)
-  @Post('create-stake/:txHash')
-  async createStakeTest(
-    @Param('txHash') txHash: string,
-    @Body() body: { walletAddress: string; poolType: number },
-  ) {
-    return this.stakingService.createStake(
-      txHash,
-      body.walletAddress,
-      body.poolType,
-    );
-  }
+  // @Post('create-stake/:txHash')
+  // async createStakeTest(
+  //   @Param('txHash') txHash: string,
+  //   @Body() body: { walletAddress: string; poolType: number },
+  // ) {
+  //   return this.stakingService.createStake(
+  //     txHash,
+  //     body.walletAddress,
+  //     body.poolType,
+  //   );
+  // }
 
   @UseGuards(JwtAuthGuard)
   @Post('verify/:txHash')
@@ -57,13 +57,13 @@ export class StakingController {
   }
 
   // @UseGuards(JwtAuthGuard)
-  @Post('verify-stake/:txHash')
-  async createStakingRecordTest(
-    @Param('txHash') txHash: string,
-    @Body() body: { walletAddress: string },
-  ) {
-    return this.stakingService.verifyStakingRecord(txHash, body.walletAddress);
-  }
+  // @Post('verify-stake/:txHash')
+  // async createStakingRecordTest(
+  //   @Param('txHash') txHash: string,
+  //   @Body() body: { walletAddress: string },
+  // ) {
+  //   return this.stakingService.verifyStakingRecord(txHash, body.walletAddress);
+  // }
 
   @UseGuards(JwtAuthGuard)
   @Get('get-all-Stakes-by-user/:walletAddress')
@@ -83,12 +83,10 @@ export class StakingController {
   async createClaimedRewardForStake(@Param('txHash') txHash: string) {
     return this.stakingService.createClaimedRewardForStake(txHash);
   }
-  @Post('create-claimed-reward-for-test-stake/:txHash')
-  async createClimedRewardForTest(@Param('txHash') txHash: string) {
-    return this.stakingService.createClaimedRewardForStake(txHash);
-  }
-
-
+  // @Post('create-claimed-reward-for-test-stake/:txHash')
+  // async createClimedRewardForTest(@Param('txHash') txHash: string) {
+  //   return this.stakingService.createClaimedRewardForStake(txHash);
+  // }
 
   @UseGuards(JwtAuthGuard)
   @Get('get-all-claimed-rewards')
@@ -194,5 +192,10 @@ export class StakingController {
     @Body() body: { chain: ChainEnum },
   ) {
     return this.stakingService.verifyPayment(txHash, body.chain);
+  }
+
+  @Get('get-referral-income/:address')
+  async getReferralIncome(@Param('address') address: string) {
+    return this.stakingService.getReferralIncome(address);
   }
 }

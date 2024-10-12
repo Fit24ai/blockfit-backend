@@ -17,6 +17,11 @@ import {
   ClaimedHistory,
   ClaimedHistorySchema,
 } from './schema/claimedHistory.schema';
+import {
+  StakingTransaction,
+  StakingTransactionSchema,
+} from 'src/staking-transaction/schema/stakingTransaction.schema';
+import { User, UserSchema } from 'src/users/schema/user.schema';
 
 @Module({
   imports: [
@@ -24,6 +29,8 @@ import {
     MongooseModule.forFeature([
       { name: Staking.name, schema: StakingSchema },
       { name: StakeDuration.name, schema: StakeDurationSchema },
+      { name: StakingTransaction.name, schema: StakingTransactionSchema },
+      { name: User.name, schema: UserSchema },
       {
         name: ClaimedRewardForStakeHistory.name,
         schema: ClaimedRewardForStakeHistorySchema,

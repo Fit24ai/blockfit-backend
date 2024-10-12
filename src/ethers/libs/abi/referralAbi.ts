@@ -305,6 +305,19 @@ export const referralAbi = [
   },
   {
     inputs: [],
+    name: 'isCondition',
+    outputs: [
+      {
+        internalType: 'bool',
+        name: '',
+        type: 'bool',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
     name: 'owner',
     outputs: [
       {
@@ -356,6 +369,19 @@ export const referralAbi = [
   {
     inputs: [],
     name: 'renounceOwnership',
+    outputs: [],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      {
+        internalType: 'bool',
+        name: '_isCondition',
+        type: 'bool',
+      },
+    ],
+    name: 'setCondition',
     outputs: [],
     stateMutability: 'nonpayable',
     type: 'function',

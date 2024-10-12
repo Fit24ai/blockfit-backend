@@ -1,3 +1,4 @@
+import { User } from 'src/users/schema/user.schema';
 import {
   ConflictException,
   Injectable,
@@ -18,9 +19,19 @@ import {
 } from 'ethers';
 import { StakeDuration } from './schema/stakeDuration.schema';
 import { ClaimedRewardForStakeHistory } from './schema/claimedRewardForStakeHistory.schema';
-import { IRefStakeLogs, IClaimedRewardForStake } from './types/logs';
-import { ChainEnum, TransactionStatusEnum } from 'src/types/transaction';
+import {
+  IRefStakeLogs,
+  IClaimedRewardForStake,
+  ReferralIncomeResult,
+} from './types/logs';
+import {
+  ChainEnum,
+  DistributionStatusEnum,
+  StakingStatus,
+  TransactionStatusEnum,
+} from 'src/types/transaction';
 import { ClaimedHistory } from './schema/claimedHistory.schema';
+import { StakingTransaction } from 'src/staking-transaction/schema/stakingTransaction.schema';
 
 @Injectable()
 export class StakingService {
@@ -31,6 +42,10 @@ export class StakingService {
     private StakeDurationModel: Model<StakeDuration>,
     @InjectModel(ClaimedRewardForStakeHistory.name)
     private claimedRewardForStakeModel: Model<ClaimedRewardForStakeHistory>,
+    @InjectModel(StakingTransaction.name)
+    private Transaction: Model<StakingTransaction>,
+    @InjectModel(User.name)
+    private User: Model<User>,
     @InjectModel(ClaimedHistory.name)
     private claimedHistotyModel: Model<ClaimedHistory>,
   ) {}
@@ -138,7 +153,7 @@ export class StakingService {
             amount: this.BigToNumber(parsedLog[1]),
             apr: Number(idToStake[2]) / 10,
             poolType: Number(idToStake[3]),
-            startTime: Number(stakedLogs.args[4]),
+            startTime: Number(idToStake[4]),
             stakeDuration: stakeDuration.duration,
             txHash,
             isReferred: true,
@@ -214,7 +229,7 @@ export class StakingService {
     const receipt =
       await this.ethersService.icoProvider.getTransactionReceipt(txHash);
 
-    console.log(receipt.logs)
+    console.log(receipt.logs);
 
     const filteredLogs = receipt.logs.filter(
       (log) => log.topics[0] === process.env.REWARD_CLAIMED_TOPIC,
@@ -855,5 +870,82 @@ export class StakingService {
       console.log(error);
       return { success: false };
     }
+  }
+
+  // async getReferralIncome(address: string) {
+  //   const directMembers =
+  //     await this.ethersService.referralContract.getAllRefrees(address);
+
+  //   directMembers.map(async (member) => {
+  //     const stakes = await this.StakingModel.find({
+  //       walletAddress: member,
+  //       isReferred: false,
+  //       transactionStatus: TransactionStatusEnum.CONFIRMED,
+  //     });
+
+  //     stakes.map(async (stake) => {
+  //       const transaction = await this.Transaction.findOne({
+  //         distributionHash: stake.txHash,
+  //         distributionStatus: DistributionStatusEnum.DISTRIBUTED,
+  //         stakingStatus: StakingStatus.STAKED,
+  //       });
+  //       const amount = Number(formatUnits(transaction.amountBigNumber, 18));
+  //       const refIncome = (amount * 15) / 100;
+  //     });
+  //   });
+  // }
+
+  async getReferralIncome(address: string): Promise<{
+    membersData: ReferralIncomeResult[];
+    totalReferralIncome: number;
+  }> {
+    const directMembers =
+      await this.ethersService.referralContract.getAllRefrees(address);
+    console.log(directMembers);
+
+    let totalReferralIncome = 0;
+
+    const membersData = await Promise.all(
+      directMembers.map(async (member) => {
+        const stakes = await this.StakingModel.find({
+          walletAddress: member,
+          isReferred: false,
+          transactionStatus: TransactionStatusEnum.CONFIRMED,
+        });
+
+        const stakeIncomes = await Promise.all(
+          stakes.map(async (stake) => {
+            const transaction = await this.Transaction.findOne({
+              distributionHash: stake.txHash,
+              distributionStatus: DistributionStatusEnum.DISTRIBUTED,
+              stakingStatus: StakingStatus.STAKED,
+            });
+
+            if (!transaction) return { stake, referralIncome: 0 };
+
+            const amount = Number(formatUnits(transaction.amountBigNumber, 18));
+            const refIncome = (amount * 5) / 100;
+
+            // Add to total referral income
+            totalReferralIncome += refIncome;
+
+            return {
+              stake,
+              referralIncome: refIncome,
+            };
+          }),
+        );
+
+        return {
+          member,
+          stakeIncomes,
+        };
+      }),
+    );
+
+    return {
+      membersData,
+      totalReferralIncome, // Return the total of all referral incomes
+    };
   }
 }
