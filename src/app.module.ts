@@ -21,6 +21,7 @@ import { ReferralModule } from './referral/referral.module';
 import { NotificationModule } from './notification/notification.module';
 import { StakingTransactionModule } from './staking-transaction/staking-transaction.module';
 import { RedisModule } from './redis/redis.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -61,9 +62,9 @@ import { RedisModule } from './redis/redis.module';
     NotificationModule,
     StakingTransactionModule,
     RedisModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy],
 })
-
 export class AppModule {}

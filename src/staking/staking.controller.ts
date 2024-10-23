@@ -156,6 +156,13 @@ export class StakingController {
       body.level,
     );
   }
+  @Post('get-direct-members-data-test')
+  // @UseGuards(JwtAuthGuard)
+  async getAllMembersDataTest(
+    @Body() body: { level: number; address: string },
+  ) {
+    return this.stakingService.getAllLevelMembers(body.address, body.level);
+  }
 
   @Get('get-total-network-members')
   async getTotalNetworkMembers() {
