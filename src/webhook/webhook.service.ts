@@ -27,6 +27,7 @@ import { ReferralReceivedDto } from './dto/referralReceived.dto';
 import { StakingTransaction } from 'src/staking-transaction/schema/stakingTransaction.schema';
 import { StakingService } from 'src/staking/staking.service';
 import { RedisClientType } from 'redis';
+import BigNumber from 'bignumber.js';
 
 @Injectable()
 export class WebhookService {
@@ -34,7 +35,7 @@ export class WebhookService {
     @InjectModel(StakingTransaction.name)
     private Transaction: Model<StakingTransaction>,
     @InjectModel(ReferralTransaction.name)
-    private ReferralTransaction: Model<ReferralTransaction>,
+    private referrlaTransaction: Model<ReferralTransaction>,
     @InjectModel(User.name) private User: Model<User>,
     private readonly ethersService: EthersService,
     private readonly transferService: TransferService,
@@ -259,45 +260,128 @@ export class WebhookService {
         transaction.stakingStatus = StakingStatus.FAILED;
         await transaction.save();
       }
+      try {
+        await this.createRefIncome(
+          transaction.transactionHash,
+          transaction.chain,
+        );
+      } catch (error) {
+        console.log(error);
+      }
     }
+
     await this.redisService.del(
       `transaction:${transaction.transactionHash}-${chain}`,
     );
     return { message: 'Success' };
   }
 
-  async referralReceived(
-    referralReceived: ReferralReceivedDto,
-    chain: ChainEnum,
-  ) {
-    const referralReceivedFormatted: ReferralReceivedDto = {
-      referrer: referralReceived.referrer,
-      buyer: referralReceived.buyer,
-      buy_amount: referralReceived.buy_amount,
-      referral_income: referralReceived.referral_income,
-      token: referralReceived.token,
-      transaction_hash: referralReceived.transaction_hash,
-      block_number: referralReceived.block_number,
-      block_timestamp: referralReceived.block_timestamp,
-    };
+  async createRefIncome(tx: string, chain: ChainEnum) {
+    if (chain === ChainEnum.BINANCE) {
+      const receipt =
+        await this.ethersService.binanceProvider.getTransactionReceipt(tx);
+      const paymentLogs = receipt.logs.filter(
+        (log) => log.topics[0] === process.env.REFERRAL_INCOME_RECEIVED,
+      );
+      for (const log of paymentLogs) {
+        try {
+          const parsedLog = this.ethersService.paymentInterface.parseLog(log);
+          console.log('Parsed Log:', parsedLog.args);
+          const ref = await this.referrlaTransaction.findOne({
+            transactionHash: tx,
+          });
+          console.log(ref);
+          if (!ref) {
+            await this.referrlaTransaction.create({
+              transactionHash: tx,
+              referrer: parsedLog.args[0],
+              buyer: parsedLog.args[1],
+              buyAmount: this.BigToNumber(parsedLog.args[2]),
+              referralIncome: this.BigToNumber(parsedLog.args[3]),
+              token: parsedLog.args[4],
+              chain: ChainEnum.BINANCE,
+            });
+            console.log('done');
+          }
+        } catch (error) {
+          console.error('Failed to parse filtered log:', error);
+        }
+      }
+    } else {
+      const receipt =
+        await this.ethersService.ethereumProvider.getTransactionReceipt(tx);
+      const paymentLogs = receipt.logs.filter(
+        (log) => log.topics[0] === process.env.REFERRAL_INCOME_RECEIVED,
+      );
 
-    const referralTx = await this.ReferralTransaction.findOne({
-      where: {
-        transactionHash: referralReceivedFormatted.transaction_hash,
-      },
-    });
-
-    if (referralTx) throw new BadRequestException('Referral Tx Already Exists');
-
-    const referralTransaction = await this.ReferralTransaction.create({
-      ...referralReceivedFormatted,
-      buyAmount: referralReceivedFormatted.buy_amount,
-      referralIncome: referralReceivedFormatted.referral_income,
-      transactionHash: referralReceivedFormatted.transaction_hash,
-      blockNumber: referralReceivedFormatted.block_number,
-      chain: chain,
-    });
-
-    return { message: 'Success' };
+      for (const log of paymentLogs) {
+        try {
+          const parsedLog = this.ethersService.paymentInterface.parseLog(log);
+          console.log('Parsed Log:', parsedLog.args);
+          const ref = await this.referrlaTransaction.findOne({
+            transactionHash: tx,
+          });
+          console.log(ref);
+          if (!ref) {
+            await this.referrlaTransaction.create({
+              transactionHash: tx,
+              referrer: parsedLog.args[0],
+              buyer: parsedLog.args[1],
+              buyAmount: this.BigToNumber(
+                parseEther(formatUnits(parsedLog.args[2], 6)),
+              ),
+              referralIncome: this.BigToNumber(
+                parseEther(formatUnits(parsedLog.args[3], 6)),
+              ),
+              token: parsedLog.args[4],
+              chain: ChainEnum.ETHEREUM,
+            });
+            console.log('done');
+          }
+        } catch (error) {
+          console.error('Failed to parse filtered log:', error);
+        }
+      }
+    }
   }
+
+  private BigToNumber(value: BigInt): number {
+    const bigNumberValue = new BigNumber(value.toString());
+    return bigNumberValue.dividedBy(new BigNumber(10).pow(18)).toNumber();
+  }
+
+  // async referralReceived(
+  //   referralReceived: ReferralReceivedDto,
+  //   chain: ChainEnum,
+  // ) {
+  //   const referralReceivedFormatted: ReferralReceivedDto = {
+  //     referrer: referralReceived.referrer,
+  //     buyer: referralReceived.buyer,
+  //     buy_amount: referralReceived.buy_amount,
+  //     referral_income: referralReceived.referral_income,
+  //     token: referralReceived.token,
+  //     transaction_hash: referralReceived.transaction_hash,
+  //     block_number: referralReceived.block_number,
+  //     block_timestamp: referralReceived.block_timestamp,
+  //   };
+
+  //   const referralTx = await this.ReferralTransaction.findOne({
+  //     where: {
+  //       transactionHash: referralReceivedFormatted.transaction_hash,
+  //     },
+  //   });
+
+  //   if (referralTx) throw new BadRequestException('Referral Tx Already Exists');
+
+  //   const referralTransaction = await this.ReferralTransaction.create({
+  //     ...referralReceivedFormatted,
+  //     buyAmount: referralReceivedFormatted.buy_amount,
+  //     referralIncome: referralReceivedFormatted.referral_income,
+  //     transactionHash: referralReceivedFormatted.transaction_hash,
+  //     blockNumber: referralReceivedFormatted.block_number,
+  //     chain: chain,
+  //   });
+
+  //   return { message: 'Success' };
+  // }
 }

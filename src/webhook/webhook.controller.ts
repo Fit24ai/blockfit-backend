@@ -24,12 +24,12 @@ export class WebhookController {
     return this.webhookService.paymentReceived(data, chain);
   }
 
-  @Post('referral-received')
-  handleReferralWebhook(
-    @Body('data') data: ReferralReceivedDto[],
-    @Query('chain') chain: ChainEnum,
-  ) {
-    console.log({referralReceived: data});
-    return this.webhookService.referralReceived(data[0],chain);
-  }
+  // @Post('referral-received')
+  // handleReferralWebhook(
+  //   @Body('data') data: ReferralReceivedDto[],
+  //   @Query('chain') chain: ChainEnum,
+  // ) {
+  //   console.log({referralReceived: data});
+  //   return this.webhookService.referralReceived(data[0],chain);
+  // }
 }

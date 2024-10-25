@@ -32,6 +32,7 @@ import {
 } from 'src/types/transaction';
 import { ClaimedHistory } from './schema/claimedHistory.schema';
 import { StakingTransaction } from 'src/staking-transaction/schema/stakingTransaction.schema';
+import { ReferralTransaction } from 'src/webhook/schema/referralTransaction.schema';
 
 @Injectable()
 export class StakingService {
@@ -42,6 +43,8 @@ export class StakingService {
     private StakeDurationModel: Model<StakeDuration>,
     @InjectModel(ClaimedRewardForStakeHistory.name)
     private claimedRewardForStakeModel: Model<ClaimedRewardForStakeHistory>,
+    @InjectModel(ReferralTransaction.name)
+    private referralTransaction: Model<ReferralTransaction>,
     @InjectModel(StakingTransaction.name)
     private Transaction: Model<StakingTransaction>,
     @InjectModel(User.name)
@@ -772,20 +775,20 @@ export class StakingService {
   }
 
   async getTotalNetworkMembers() {
-    let totalStakedMembers = 0;
-    let stakedMemberData = [];
+    // let totalStakedMembers = 0;
+    // let stakedMemberData = [];
     try {
       const members = await this.ethersService.icoContract.getAllUsers();
-      for (const member of members) {
-        const tokens = await this.getUserTotalTokenStaked(member);
-        if (tokens.tokens > 0) {
-          totalStakedMembers += 1;
-          stakedMemberData.push({ address: member, tokens: tokens.tokens });
-        }
-      }
+      // for (const member of members) {
+      //   const tokens = await this.getUserTotalTokenStaked(member);
+      //   if (tokens.tokens > 0) {
+      //     totalStakedMembers += 1;
+      //     stakedMemberData.push({ address: member, tokens: tokens.tokens });
+      //   }
+      // }
       return {
-        totalStakedMembers,
-        stakedMemberData,
+        totalStakedMembers: members.length,
+        stakedMemberData: members,
         members,
         totalMembers: members.length,
       };
@@ -895,57 +898,63 @@ export class StakingService {
   //   });
   // }
 
-  async getReferralIncome(address: string): Promise<{
-    membersData: ReferralIncomeResult[];
-    totalReferralIncome: number;
-  }> {
-    const directMembers =
-      await this.ethersService.referralContract.getAllRefrees(address);
-    console.log(directMembers);
+  async getReferralIncome(address: string) {
+    // const directMembers =
+    //   await this.ethersService.referralContract.getAllRefrees(address);
+    // console.log(directMembers);
+
+    // let totalReferralIncome = 0;
+
+    // const membersData = await Promise.all(
+    //   directMembers.map(async (member) => {
+    //     const stakes = await this.StakingModel.find({
+    //       walletAddress: member,
+    //       isReferred: false,
+    //       transactionStatus: TransactionStatusEnum.CONFIRMED,
+    //     });
+
+    //     const stakeIncomes = await Promise.all(
+    //       stakes.map(async (stake) => {
+    //         const transaction = await this.Transaction.findOne({
+    //           distributionHash: stake.txHash,
+    //           distributionStatus: DistributionStatusEnum.DISTRIBUTED,
+    //           stakingStatus: StakingStatus.STAKED,
+    //         });
+
+    //         if (!transaction) return { stake, referralIncome: 0 };
+
+    //         const amount = Number(formatUnits(transaction.amountBigNumber, 18));
+    //         const refIncome = (amount * 5) / 100;
+
+    //         totalReferralIncome += refIncome;
+
+    //         return {
+    //           stake,
+    //           referralIncome: refIncome,
+    //         };
+    //       }),
+    //     );
+
+    //     return {
+    //       member,
+    //       stakeIncomes,
+    //     };
+    //   }),
+    // );
 
     let totalReferralIncome = 0;
 
-    const membersData = await Promise.all(
-      directMembers.map(async (member) => {
-        const stakes = await this.StakingModel.find({
-          walletAddress: member,
-          isReferred: false,
-          transactionStatus: TransactionStatusEnum.CONFIRMED,
-        });
+    const refIncomes = await this.referralTransaction.find({
+      referrer: address,
+    });
 
-        const stakeIncomes = await Promise.all(
-          stakes.map(async (stake) => {
-            const transaction = await this.Transaction.findOne({
-              distributionHash: stake.txHash,
-              distributionStatus: DistributionStatusEnum.DISTRIBUTED,
-              stakingStatus: StakingStatus.STAKED,
-            });
-
-            if (!transaction) return { stake, referralIncome: 0 };
-
-            const amount = Number(formatUnits(transaction.amountBigNumber, 18));
-            const refIncome = (amount * 5) / 100;
-
-            // Add to total referral income
-            totalReferralIncome += refIncome;
-
-            return {
-              stake,
-              referralIncome: refIncome,
-            };
-          }),
-        );
-
-        return {
-          member,
-          stakeIncomes,
-        };
-      }),
-    );
+    refIncomes.map((ref) => {
+      totalReferralIncome += Number(ref.referralIncome);
+    });
 
     return {
-      membersData,
-      totalReferralIncome, // Return the total of all referral incomes
+      membersData: refIncomes,
+      totalReferralIncome,
     };
   }
 }

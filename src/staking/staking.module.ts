@@ -22,6 +22,10 @@ import {
   StakingTransactionSchema,
 } from 'src/staking-transaction/schema/stakingTransaction.schema';
 import { User, UserSchema } from 'src/users/schema/user.schema';
+import {
+  ReferralTransaction,
+  ReferralTransactionSchema,
+} from 'src/webhook/schema/referralTransaction.schema';
 
 @Module({
   imports: [
@@ -30,6 +34,7 @@ import { User, UserSchema } from 'src/users/schema/user.schema';
       { name: Staking.name, schema: StakingSchema },
       { name: StakeDuration.name, schema: StakeDurationSchema },
       { name: StakingTransaction.name, schema: StakingTransactionSchema },
+      { name: ReferralTransaction.name, schema: ReferralTransactionSchema },
       { name: User.name, schema: UserSchema },
       {
         name: ClaimedRewardForStakeHistory.name,
