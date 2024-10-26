@@ -276,7 +276,7 @@ export class WebhookService {
     return { message: 'Success' };
   }
 
-  async createRefIncome(tx: string, chain: ChainEnum) {
+  async createRefIncome(tx: string, chain: string) {
     if (chain === ChainEnum.BINANCE) {
       const receipt =
         await this.ethersService.binanceProvider.getTransactionReceipt(tx);
