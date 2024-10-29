@@ -145,6 +145,10 @@ export class StakingController {
       req.user.walletAddress,
     );
   }
+  @Get('get-user-level-test/:walletAddress')
+  async getUserLevelTest(@Param('walletAddress') walletAddress: string) {
+    return this.stakingService.getDirectMemberswithStakedTokens(walletAddress);
+  }
   @Post('get-direct-members-data')
   @UseGuards(JwtAuthGuard)
   async getAllMembersData(

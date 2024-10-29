@@ -106,7 +106,7 @@ export class StakingService {
       throw new ConflictException('transaction already exists');
     }
     const receipt =
-      await this.ethersService.binanceProvider.getTransactionReceipt(txHash);
+      await this.ethersService.icoProvider.getTransactionReceipt(txHash);
 
     console.log('receipt', receipt);
 
