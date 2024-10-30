@@ -430,6 +430,8 @@ export class StakingService {
             referreDetails: {
               referre: referredUser.walletAddress,
               amount: referredUser.amount,
+              stakeDuration: referredUser.stakeDuration,
+              startTime : referredUser.startTime
             },
           });
         }
