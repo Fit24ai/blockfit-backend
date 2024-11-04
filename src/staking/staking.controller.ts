@@ -112,6 +112,14 @@ export class StakingController {
     return this.stakingService.getReferralStream(walletAddress, level);
   }
 
+  @Post('get-referral-stream-test/:level?') // Make level optional with ?
+  async getReferralStreamTest(
+    @Body() body: { walletAddress: string },
+    @Param('level') level?: number, // Make level optional
+  ) {
+    return this.stakingService.getReferralStream(body.walletAddress, level);
+  }
+
   @Get('get-user-staked-tokens')
   // @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)

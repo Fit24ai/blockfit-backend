@@ -590,7 +590,244 @@ export class AdminService {
   //   };
   // }
 
-  async getUserInfo(walletAddress: string, specificLevel?: number) {
+  // async getUserInfo(walletAddress: string, specificLevel?: number) {
+  //   console.log(specificLevel);
+
+  //   // Fetch the user details
+  //   const user = await this.User.findOne({ walletAddress: walletAddress });
+  //   if (!user) return { success: false, error: 'User not found' };
+
+  //   const userTokens = await this.getUserTotalTokenStaked(walletAddress);
+  //   let tokensLevel = 0;
+
+  //   if (userTokens.tokens >= 12500) {
+  //     const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
+  //     tokensLevel += additionalLevels;
+  //   }
+
+  //   if (tokensLevel > 24) {
+  //     tokensLevel = 24;
+  //   }
+
+  //   const directMembers =
+  //     await this.ethersService.referralContract.getAllRefrees(walletAddress);
+
+  //   let levelCount = directMembers.length >= 24 ? 24 : directMembers.length;
+
+  //   if (levelCount <= tokensLevel) {
+  //     levelCount = tokensLevel;
+  //   }
+
+  //   const result = {};
+  //   let totalStakeAmount = 0;
+  //   let totalRefStakeAmount = 0;
+
+  //   // Fetch self stakes (direct stakes from the user)
+  //   const selfStakes = await this.StakingModel.find({
+  //     walletAddress: walletAddress,
+  //     isReferred: false,
+  //   });
+
+  //   // Accumulate total self stake amount
+  //   selfStakes.forEach((stake) => {
+  //     totalStakeAmount += stake.amount;
+  //   });
+
+  //   // Recursive function to fetch referred stakes by level
+  //   const getReferredStakesByLevel = async (
+  //     walletAddress: string,
+  //     currentLevel: number,
+  //   ) => {
+  //     // Skip levels lower than the specific level if specified
+  //     if (specificLevel && currentLevel < specificLevel) {
+  //       // Continue recursion without fetching stakes until we reach the specific level
+  //       const directMembers =
+  //         await this.ethersService.referralContract.getAllRefrees(
+  //           walletAddress,
+  //         );
+  //       for (const member of directMembers) {
+  //         await getReferredStakesByLevel(member, currentLevel + 1);
+  //       }
+  //       return;
+  //     }
+
+  //     // Stop if level exceeds 24 or if we have passed the specific level
+  //     if (currentLevel > 24 || (specificLevel && currentLevel > specificLevel))
+  //       return;
+
+  //     // Fetch direct referrals for the current wallet address
+  //     const directMembers =
+  //       await this.ethersService.referralContract.getAllRefrees(walletAddress);
+
+  //     // Ensure result object has an array for the current level
+  //     if (!result[currentLevel]) {
+  //       result[currentLevel] = [];
+  //     }
+
+  //     for (const member of directMembers) {
+  //       // Fetch the self stakes of each referred member
+  //       const memberSelfStakes = await this.StakingModel.find({
+  //         walletAddress: member,
+  //         isReferred: false,
+  //       });
+
+  //       // Add member's stakes to the result at the current level
+  //       memberSelfStakes.forEach((stake) => {
+  //         if (currentLevel <= levelCount) {
+  //           result[currentLevel].push({
+  //             stake,
+  //           });
+  //           totalRefStakeAmount += stake.amount;
+  //         }
+  //       });
+
+  //       // Continue recursion if specificLevel is not provided (fetch all levels)
+  //       if (!specificLevel) {
+  //         await getReferredStakesByLevel(member, currentLevel + 1);
+  //       }
+  //     }
+  //   };
+
+  //   // If specific level is provided, only fetch for that level, otherwise start at level 1
+  //   if (specificLevel) {
+  //     await getReferredStakesByLevel(walletAddress, 1); // Start from level 1 but skip lower levels
+  //   } else {
+  //     await getReferredStakesByLevel(walletAddress, 1); // Fetch all levels recursively
+  //   }
+
+  //   // Fetch the user's total staked tokens from the ICO contract
+  //   const tokens =
+  //     await this.ethersService.icoContract.userTotalTokenStaked(walletAddress);
+
+  //   return {
+  //     success: true,
+  //     user,
+  //     totalStakeAmount: Number(formatUnits(tokens, 18)), // Convert total staked tokens
+  //     totalRefStakeAmount, // Total referred stakes across levels
+  //     selfStakes, // User's direct self stakes
+  //     referredStakes: result, // Referred stakes grouped by level
+  //   };
+  // }
+
+  // async getUserInfo(walletAddress: string, specificLevel?: number) {
+  //   console.log(specificLevel);
+
+  //   // Fetch the user details
+  //   const user = await this.User.findOne({ walletAddress: walletAddress });
+  //   if (!user) return { success: false, error: 'User not found' };
+
+  //   const userTokens = await this.getUserTotalTokenStaked(walletAddress);
+  //   let tokensLevel = 0;
+
+  //   if (userTokens.tokens >= 12500) {
+  //     const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
+  //     tokensLevel += additionalLevels;
+  //   }
+
+  //   if (tokensLevel > 24) {
+  //     tokensLevel = 24;
+  //   }
+
+  //   const directMembers =
+  //     await this.ethersService.referralContract.getAllRefrees(walletAddress);
+  //   let levelCount = Math.min(24, directMembers.length);
+
+  //   if (levelCount <= tokensLevel) {
+  //     levelCount = tokensLevel;
+  //   }
+
+  //   const result = {};
+  //   let totalStakeAmount = 0;
+  //   let totalRefStakeAmount = 0;
+
+  //   // Fetch self stakes (direct stakes from the user)
+  //   const selfStakes = await this.StakingModel.find({
+  //     walletAddress: walletAddress,
+  //     isReferred: false,
+  //   });
+
+  //   // Accumulate total self stake amount
+  //   selfStakes.forEach((stake) => {
+  //     totalStakeAmount += stake.amount;
+  //   });
+
+  //   // Optimized recursive function to fetch referred stakes by level
+  //   const getReferredStakesByLevel = async (
+  //     walletAddress: string,
+  //     currentLevel: number,
+  //   ) => {
+  //     // Skip levels lower than the specific level if specified
+  //     if (specificLevel && currentLevel < specificLevel) {
+  //       const directMembers =
+  //         await this.ethersService.referralContract.getAllRefrees(
+  //           walletAddress,
+  //         );
+  //       await Promise.all(
+  //         directMembers.map((member) =>
+  //           getReferredStakesByLevel(member, currentLevel + 1),
+  //         ),
+  //       );
+  //       return;
+  //     }
+
+  //     // Stop if level exceeds 24 or if we have passed the specific level
+  //     if (currentLevel > 24 || (specificLevel && currentLevel > specificLevel))
+  //       return;
+
+  //     const directMembers =
+  //       await this.ethersService.referralContract.getAllRefrees(walletAddress);
+
+  //     if (!result[currentLevel]) {
+  //       result[currentLevel] = [];
+  //     }
+
+  //     const stakePromises = directMembers.map(async (member) => {
+  //       const memberSelfStakes = await this.StakingModel.find({
+  //         walletAddress: member,
+  //         isReferred: false,
+  //       });
+
+  //       memberSelfStakes.forEach((stake) => {
+  //         if (currentLevel <= levelCount) {
+  //           result[currentLevel].push({ stake });
+  //           totalRefStakeAmount += stake.amount;
+  //         }
+  //       });
+
+  //       if (!specificLevel) {
+  //         await getReferredStakesByLevel(member, currentLevel + 1);
+  //       }
+  //     });
+
+  //     await Promise.all(stakePromises);
+  //   };
+
+  //   // Start fetching referred stakes based on the specified or default level
+  //   await getReferredStakesByLevel(walletAddress, 1);
+
+  //   // Fetch the user's total staked tokens from the ICO contract
+  //   const tokens =
+  //     await this.ethersService.icoContract.userTotalTokenStaked(walletAddress);
+  //   const referedBy =
+  //     await this.ethersService.referralContract.referedBy(walletAddress);
+
+  //   return {
+  //     success: true,
+  //     user,
+  //     referedBy,
+  //     totalStakeAmount: Number(formatUnits(tokens, 18)), // Convert total staked tokens
+  //     totalRefStakeAmount, // Total referred stakes across levels
+  //     selfStakes, // User's direct self stakes
+  //     referredStakes: result, // Referred stakes grouped by level
+  //   };
+  // }
+
+  async getUserInfo(
+    walletAddress: string,
+    specificLevel?: number,
+    dateFrom?: Date,
+    dateTo?: Date,
+  ) {
     console.log(specificLevel);
 
     // Fetch the user details
@@ -611,8 +848,7 @@ export class AdminService {
 
     const directMembers =
       await this.ethersService.referralContract.getAllRefrees(walletAddress);
-
-    let levelCount = directMembers.length >= 24 ? 24 : directMembers.length;
+    let levelCount = Math.min(24, directMembers.length);
 
     if (levelCount <= tokensLevel) {
       levelCount = tokensLevel;
@@ -626,6 +862,13 @@ export class AdminService {
     const selfStakes = await this.StakingModel.find({
       walletAddress: walletAddress,
       isReferred: false,
+      ...(dateFrom &&
+        dateTo && {
+          createdAt: {
+            $gte: dateFrom,
+            $lte: dateTo,
+          },
+        }),
     });
 
     // Accumulate total self stake amount
@@ -633,21 +876,22 @@ export class AdminService {
       totalStakeAmount += stake.amount;
     });
 
-    // Recursive function to fetch referred stakes by level
+    // Optimized recursive function to fetch referred stakes by level with date filtering
     const getReferredStakesByLevel = async (
       walletAddress: string,
       currentLevel: number,
     ) => {
       // Skip levels lower than the specific level if specified
       if (specificLevel && currentLevel < specificLevel) {
-        // Continue recursion without fetching stakes until we reach the specific level
         const directMembers =
           await this.ethersService.referralContract.getAllRefrees(
             walletAddress,
           );
-        for (const member of directMembers) {
-          await getReferredStakesByLevel(member, currentLevel + 1);
-        }
+        await Promise.all(
+          directMembers.map((member) =>
+            getReferredStakesByLevel(member, currentLevel + 1),
+          ),
+        );
         return;
       }
 
@@ -655,53 +899,54 @@ export class AdminService {
       if (currentLevel > 24 || (specificLevel && currentLevel > specificLevel))
         return;
 
-      // Fetch direct referrals for the current wallet address
       const directMembers =
         await this.ethersService.referralContract.getAllRefrees(walletAddress);
 
-      // Ensure result object has an array for the current level
       if (!result[currentLevel]) {
         result[currentLevel] = [];
       }
 
-      for (const member of directMembers) {
-        // Fetch the self stakes of each referred member
+      const stakePromises = directMembers.map(async (member) => {
         const memberSelfStakes = await this.StakingModel.find({
           walletAddress: member,
           isReferred: false,
+          ...(dateFrom &&
+            dateTo && {
+              createdAt: {
+                $gte: dateFrom,
+                $lte: dateTo,
+              },
+            }),
         });
 
-        // Add member's stakes to the result at the current level
         memberSelfStakes.forEach((stake) => {
           if (currentLevel <= levelCount) {
-            result[currentLevel].push({
-              stake,
-            });
+            result[currentLevel].push({ stake });
             totalRefStakeAmount += stake.amount;
           }
         });
 
-        // Continue recursion if specificLevel is not provided (fetch all levels)
         if (!specificLevel) {
           await getReferredStakesByLevel(member, currentLevel + 1);
         }
-      }
+      });
+
+      await Promise.all(stakePromises);
     };
 
-    // If specific level is provided, only fetch for that level, otherwise start at level 1
-    if (specificLevel) {
-      await getReferredStakesByLevel(walletAddress, 1); // Start from level 1 but skip lower levels
-    } else {
-      await getReferredStakesByLevel(walletAddress, 1); // Fetch all levels recursively
-    }
+    // Start fetching referred stakes based on the specified or default level
+    await getReferredStakesByLevel(walletAddress, 1);
 
     // Fetch the user's total staked tokens from the ICO contract
     const tokens =
       await this.ethersService.icoContract.userTotalTokenStaked(walletAddress);
+    const referedBy =
+      await this.ethersService.referralContract.referedBy(walletAddress);
 
     return {
       success: true,
       user,
+      referedBy,
       totalStakeAmount: Number(formatUnits(tokens, 18)), // Convert total staked tokens
       totalRefStakeAmount, // Total referred stakes across levels
       selfStakes, // User's direct self stakes
@@ -794,5 +1039,14 @@ export class AdminService {
     await Promise.all(promises); // Wait for all referred stakes to be fetched
 
     return { totalRefStakeAmount };
+  }
+
+  async blockOrUnblockUser(walletAddress: string, block: boolean) {
+    console.log(walletAddress, block);
+    const user = await this.User.findOne({ walletAddress: walletAddress });
+    console.log(user);
+    user.blocked = block;
+    await user.save();
+    return { success: true };
   }
 }

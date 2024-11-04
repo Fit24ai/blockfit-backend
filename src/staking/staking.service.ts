@@ -95,7 +95,7 @@ export class StakingService {
 
     const transaction = await this.StakingModel.findOne({
       txHash,
-      walletAddress: { $regex: walletAddress, $options: 'i' },
+      walletAddress,
     });
 
     if (!transaction) {
@@ -431,7 +431,7 @@ export class StakingService {
               referre: referredUser.walletAddress,
               amount: referredUser.amount,
               stakeDuration: referredUser.stakeDuration,
-              startTime : referredUser.startTime
+              startTime: referredUser.startTime,
             },
           });
         }

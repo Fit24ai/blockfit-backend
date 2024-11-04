@@ -7,10 +7,15 @@ export type UserDocument = HydratedDocument<User>;
 export class User {
   @Prop({ type: String, required: true })
   walletAddress: string;
+
   @Prop({ type: String })
   email: string;
+
   @Prop({ type: Number })
   number: number;
+
+  @Prop({ type: Boolean, default: false })
+  blocked: boolean;
 
   @Prop({ type: Types.ObjectId })
   referredBy: Types.ObjectId;

@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   UseGuards,
   UsePipes,
@@ -134,11 +135,22 @@ export class AdminController {
   getUserInfo(
     @Param('address') address: string,
     @Query('level') level?: string, // Accept an optional query parameter for level
+    @Query('dateFrom') dateFrom?: string, // Optional dateFrom query parameter
+    @Query('dateTo') dateTo?: string, // Optional dateTo query parameter
   ) {
     // Convert the level to a number if it exists
     const specificLevel = level ? parseInt(level, 10) : undefined;
 
-    return this.adminService.getUserInfo(address, specificLevel);
+    // Convert date strings to Date objects if they exist
+    const fromDate = dateFrom ? new Date(dateFrom) : undefined;
+    const toDate = dateTo ? new Date(dateTo) : undefined;
+
+    return this.adminService.getUserInfo(
+      address,
+      specificLevel,
+      fromDate,
+      toDate,
+    );
   }
 
   @Get('filter-users')
@@ -152,6 +164,14 @@ export class AdminController {
       refStakeAmount,
       condition,
     );
+  }
+
+  @Put('block-unblock-user')
+  async blockOrUnblockUser(
+    @Query('walletAddress') walletAddress: string,
+    @Query('block') block: boolean,
+  ) {
+    return this.adminService.blockOrUnblockUser(walletAddress, block);
   }
 
   @Get('/dashboard')
