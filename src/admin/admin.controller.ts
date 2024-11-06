@@ -141,11 +141,11 @@ export class AdminController {
     // Convert the level to a number if it exists
     const specificLevel = level ? parseInt(level, 10) : undefined;
 
-    // Convert date strings to Date objects if they exist
-    const fromDate = dateFrom ? new Date(dateFrom) : undefined;
-    const toDate = dateTo ? new Date(dateTo) : undefined;
+    // Convert date strings to Date objects in GMT
+    const fromDate = dateFrom ? new Date(dateFrom + 'Z') : undefined; // Append 'Z' to treat it as UTC/GMT
+    const toDate = dateTo ? new Date(dateTo + 'Z') : undefined; // Append 'Z' to treat it as UTC/GMT
 
-    return this.adminService.getUserInfo(
+    return this.adminService.getUserInfo2(
       address,
       specificLevel,
       fromDate,
@@ -158,11 +158,17 @@ export class AdminController {
     @Query('stakeAmount') stakeAmount: number,
     @Query('refStakeAmount') refStakeAmount: number,
     @Query('condition') condition: string,
+    @Query('dateFrom') dateFrom?: string, // Optional dateFrom query parameter
+    @Query('dateTo') dateTo?: string,
   ) {
-    return this.adminService.getUsersBasedOnStakes(
+    const fromDate = dateFrom ? new Date(dateFrom + 'Z') : undefined; // Append 'Z' to treat it as UTC/GMT
+    const toDate = dateTo ? new Date(dateTo + 'Z') : undefined;
+    return this.adminService.getUsersBasedOnStakes2(
       stakeAmount,
       refStakeAmount,
       condition,
+      fromDate,
+      toDate,
     );
   }
 

@@ -830,6 +830,9 @@ export class AdminService {
   ) {
     console.log(specificLevel);
 
+    console.log(dateFrom);
+    console.log(dateTo);
+
     // Fetch the user details
     const user = await this.User.findOne({ walletAddress: walletAddress });
     if (!user) return { success: false, error: 'User not found' };
@@ -862,13 +865,13 @@ export class AdminService {
     const selfStakes = await this.StakingModel.find({
       walletAddress: walletAddress,
       isReferred: false,
-      ...(dateFrom &&
-        dateTo && {
-          createdAt: {
-            $gte: dateFrom,
-            $lte: dateTo,
-          },
-        }),
+      // ...(dateFrom &&
+      //   dateTo && {
+      //     createdAt: {
+      //       $gte: dateFrom,
+      //       $lte: dateTo,
+      //     },
+      //   }),
     });
 
     // Accumulate total self stake amount
@@ -905,16 +908,23 @@ export class AdminService {
       if (!result[currentLevel]) {
         result[currentLevel] = [];
       }
+      const dateFromTimestamp = dateFrom
+        ? new Date(dateFrom).getTime() / 1000 // Use UTC timestamp directly
+        : null;
+
+      const dateToTimestamp = dateTo
+        ? new Date(dateTo).getTime() / 1000 // Use UTC timestamp directly
+        : null;
 
       const stakePromises = directMembers.map(async (member) => {
         const memberSelfStakes = await this.StakingModel.find({
           walletAddress: member,
           isReferred: false,
-          ...(dateFrom &&
-            dateTo && {
-              createdAt: {
-                $gte: dateFrom,
-                $lte: dateTo,
+          ...(dateFromTimestamp &&
+            dateToTimestamp && {
+              startTime: {
+                $gte: dateFromTimestamp,
+                $lte: dateToTimestamp,
               },
             }),
         });
@@ -951,6 +961,173 @@ export class AdminService {
       totalRefStakeAmount, // Total referred stakes across levels
       selfStakes, // User's direct self stakes
       referredStakes: result, // Referred stakes grouped by level
+    };
+  }
+
+  // async getUserInfo2(
+  //   walletAddress: string,
+  //   specificLevel?: number,
+  //   dateFrom?: Date,
+  //   dateTo?: Date,
+  // ) {
+  //   console.log(dateFrom);
+  //   console.log(dateTo);
+  //   const user = await this.User.findOne({ walletAddress: walletAddress });
+  //   if (!user) return { success: false, error: 'User not found' };
+  //   let totalStakeAmount = 0;
+  //   let totalRefStakeAmount = 0;
+
+  //   const referedBy =
+  //     await this.ethersService.referralContract.referedBy(walletAddress);
+  //   const selfStakes = await this.StakingModel.find({
+  //     walletAddress: walletAddress,
+  //     isReferred: false,
+  //   });
+
+  //   selfStakes.forEach((stake) => {
+  //     totalStakeAmount += stake.amount;
+  //   });
+
+  //   let referredStakes = [];
+  //   if (specificLevel) {
+  //     referredStakes = await this.StakingModel.find({
+  //       walletAddress: walletAddress,
+  //       isReferred: true,
+  //       level: specificLevel,
+  //     });
+  //   } else {
+  //     referredStakes = await this.StakingModel.find({
+  //       walletAddress: walletAddress,
+  //       isReferred: true,
+  //     });
+  //   }
+  //   const result = {};
+
+  //   await Promise.all(
+  //     referredStakes.map(async (stake) => {
+  //       const refereeStake = await this.StakingModel.findOne({
+  //         stakeId: stake.refId,
+  //       });
+  //       if (refereeStake) {
+  //         if (!result[stake.level]) {
+  //           result[stake.level] = [];
+  //         }
+  //         result[stake.level].push({ stake: refereeStake });
+  //         totalRefStakeAmount += refereeStake.amount;
+  //       }
+  //     }),
+  //   );
+  //   return {
+  //     success: true,
+  //     user,
+  //     referedBy,
+  //     totalStakeAmount,
+  //     totalRefStakeAmount,
+  //     selfStakes,
+  //     referredStakes: result,
+  //   };
+  // }
+
+  async getUserInfo2(
+    walletAddress: string,
+    specificLevel?: number,
+    dateFrom?: Date,
+    dateTo?: Date,
+  ) {
+    console.log(dateFrom);
+    console.log(dateTo);
+
+    const user = await this.User.findOne({ walletAddress: walletAddress });
+    if (!user) return { success: false, error: 'User not found' };
+
+    let totalStakeAmount = 0;
+    let totalRefStakeAmount = 0;
+
+    const referedBy =
+      await this.ethersService.referralContract.referedBy(walletAddress);
+
+    const selfStakes = await this.StakingModel.find({
+      walletAddress: walletAddress,
+      isReferred: false,
+    });
+
+    selfStakes.forEach((stake) => {
+      totalStakeAmount += stake.amount;
+    });
+
+    let referredStakes = [];
+    if (specificLevel) {
+      referredStakes = await this.StakingModel.find({
+        walletAddress: walletAddress,
+        isReferred: true,
+        level: specificLevel,
+      });
+    } else {
+      referredStakes = await this.StakingModel.find({
+        walletAddress: walletAddress,
+        isReferred: true,
+      });
+    }
+
+    const result = {};
+
+    // Convert dateFrom and dateTo to cover the entire day in GMT
+    const dateFromStart = dateFrom
+      ? new Date(
+          Date.UTC(
+            dateFrom.getUTCFullYear(),
+            dateFrom.getUTCMonth(),
+            dateFrom.getUTCDate(),
+            0,
+            0,
+            0,
+          ),
+        ).getTime() / 1000
+      : null;
+    const dateToEnd = dateTo
+      ? new Date(
+          Date.UTC(
+            dateTo.getUTCFullYear(),
+            dateTo.getUTCMonth(),
+            dateTo.getUTCDate(),
+            23,
+            59,
+            59,
+            999,
+          ),
+        ).getTime() / 1000
+      : null;
+
+    console.log(dateFromStart, dateToEnd);
+
+    await Promise.all(
+      referredStakes.map(async (stake) => {
+        const refereeStake = await this.StakingModel.findOne({
+          stakeId: stake.refId,
+          ...(dateFromStart &&
+            dateToEnd && {
+              startTime: { $gte: dateFromStart, $lte: dateToEnd },
+            }),
+        });
+
+        if (refereeStake) {
+          if (!result[stake.level]) {
+            result[stake.level] = [];
+          }
+          result[stake.level].push({ stake: refereeStake });
+          totalRefStakeAmount += refereeStake.amount;
+        }
+      }),
+    );
+
+    return {
+      success: true,
+      user,
+      referedBy,
+      totalStakeAmount,
+      totalRefStakeAmount,
+      selfStakes,
+      referredStakes: result,
     };
   }
 
@@ -997,6 +1174,85 @@ export class AdminService {
     });
 
     await Promise.all(selfStakePromises); // Wait for all stake checks to complete
+
+    return {
+      totalUsers: userResults.length,
+      data: userResults,
+    };
+  }
+
+  async getUsersBasedOnStakes2(
+    stakeAmount: number,
+    refStakeAmount: number,
+    condition: string,
+    dateFrom?: Date,
+    dateTo?: Date,
+  ) {
+    const dateFromStart = dateFrom
+      ? new Date(
+          Date.UTC(
+            dateFrom.getUTCFullYear(),
+            dateFrom.getUTCMonth(),
+            dateFrom.getUTCDate(),
+            0,
+            0,
+            0,
+          ),
+        ).getTime() / 1000
+      : null;
+    const dateToEnd = dateTo
+      ? new Date(
+          Date.UTC(
+            dateTo.getUTCFullYear(),
+            dateTo.getUTCMonth(),
+            dateTo.getUTCDate(),
+            23,
+            59,
+            59,
+            999,
+          ),
+        ).getTime() / 1000
+      : null;
+
+    console.log(dateFromStart, dateToEnd);
+    const users = await this.ethersService.icoContract.getAllUsers();
+    const userResults = [];
+
+    await Promise.all(
+      users.map(async (user) => {
+        const stakes = await this.StakingModel.find({ walletAddress: user });
+
+        // Separate self-stakes and referred-stakes from the retrieved stakes
+        const selfStakeTokens = stakes
+          .filter((stake) => !stake.isReferred)
+          .reduce((sum, stake) => sum + stake.amount, 0);
+
+        const refStakeTokens = await stakes
+          .filter((stake) => stake.isReferred)
+          .reduce(async (accumPromise, stake) => {
+            const accum = await accumPromise;
+            const refereeStake = await this.StakingModel.findOne({
+              stakeId: stake.refId,
+              ...(dateFromStart &&
+                dateToEnd && {
+                  startTime: { $gte: dateFromStart, $lte: dateToEnd },
+                }),
+            });
+            return accum + (refereeStake ? refereeStake.amount : 0);
+          }, Promise.resolve(0));
+
+        // Check conditions based on user stakes
+        const selfStakeCondition = selfStakeTokens >= stakeAmount;
+        const refStakeCondition = refStakeTokens >= refStakeAmount;
+
+        if (
+          (condition === 'or' && (selfStakeCondition || refStakeCondition)) ||
+          (condition === 'and' && selfStakeCondition && refStakeCondition)
+        ) {
+          userResults.push(user);
+        }
+      }),
+    );
 
     return {
       totalUsers: userResults.length,
