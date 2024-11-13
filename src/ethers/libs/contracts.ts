@@ -9,6 +9,7 @@
 
 //   export const buyContract = '0x4455d9a0644B60624771eE36E2e6d95FB47Ecdb6';
 
+
 // * PROD
 export const IcoContract = '0x816B54c9596b3Eb19dD6D3064F894C24388Ad700';
 export const EthereumPaymentContract =
@@ -18,4 +19,3 @@ export const BinancePaymentContract =
 export const fit24ReferralContractAddress =
   '0xe486A621eD93178D9A68d0fa317FF19Da20c5BdB';
 export const buyContract = '0x49DE6A49A3BC99669c13d5d6dCa7C39d1B7a1379';
-
