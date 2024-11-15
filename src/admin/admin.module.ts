@@ -12,12 +12,20 @@ import {
   ClaimedHistorySchema,
 } from 'src/staking/schema/claimedHistory.schema';
 import { User, UserSchema } from 'src/users/schema/user.schema';
+import {
+  StakingTransaction,
+  StakingTransactionSchema,
+} from 'src/staking-transaction/schema/stakingTransaction.schema';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
-    MongooseModule.forFeature([{ name: Admin.name, schema: AdminSchema }]),
+    MongooseModule.forFeature([
+      { name: Admin.name, schema: AdminSchema },
+      { name: StakingTransaction.name, schema: StakingTransactionSchema },
+    ]),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+
     MongooseModule.forFeature([{ name: Staking.name, schema: StakingSchema }]),
     MongooseModule.forFeature([
       { name: ClaimedHistory.name, schema: ClaimedHistorySchema },

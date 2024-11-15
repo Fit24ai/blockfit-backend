@@ -11,6 +11,8 @@ import { Staking } from 'src/staking/schema/staking.schema';
 import { EthersService } from 'src/ethers/ethers.service';
 import { formatUnits, getAddress } from 'ethers';
 import { User } from 'src/users/schema/user.schema';
+import { StakingTransaction } from 'src/staking-transaction/schema/stakingTransaction.schema';
+import { DistributionStatusEnum } from 'src/types/transaction';
 
 @Injectable()
 export class AdminService {
@@ -19,6 +21,8 @@ export class AdminService {
     @InjectModel(Admin.name) private Admin: Model<Admin>,
     @InjectModel(User.name) private User: Model<User>,
     @InjectModel(Staking.name) private StakingModel: Model<Staking>,
+    @InjectModel(StakingTransaction.name)
+    private Transaction: Model<StakingTransaction>,
     @InjectModel(ClaimedHistory.name)
     private ClaimedHistoryModel: Model<ClaimedHistory>,
     private jwtService: JwtService,
@@ -387,15 +391,13 @@ export class AdminService {
   //   };
   // }
 
-  async getDailyClaimedUsers(fromDate?: Date, toDate?: Date) {
-    // Default to today's date if no dates are provided
+  async getDailyClaimedUsers(fromDate?: Date, toDate?: Date, address?: string) {
     console.log(fromDate, toDate);
     const startDate = fromDate || new Date();
     const endDate = toDate || new Date();
 
     const timezoneOffset = startDate.getTimezoneOffset() * 60 * 1000;
 
-    // Calculate the start of the range
     const startOfDay =
       new Date(
         startDate.getFullYear(),
@@ -407,7 +409,6 @@ export class AdminService {
         0,
       ).getTime() - timezoneOffset;
 
-    // Calculate the end of the range (end of the last day)
     const endOfDay =
       new Date(
         endDate.getFullYear(),
@@ -421,50 +422,80 @@ export class AdminService {
 
     let claimedAmount = 0;
 
-    // Fetch all users
-    const members = await this.ethersService.icoContract.getAllUsers();
+    if (!address) {
+      const members = await this.ethersService.icoContract.getAllUsers();
 
-    // Retrieve claimed data for the given date range
-    const claimedData = await Promise.all(
-      members.map(async (member) => {
-        const claimed = await this.ClaimedHistoryModel.find({
-          walletAddress: member,
-          createdAt: {
-            $gte: new Date(startOfDay),
-            $lte: new Date(endOfDay),
-          },
-        });
-
-        let totalAmount = 0;
-
-        // Sum up the claimed amounts for each member
-        if (claimed.length > 0) {
-          claimed.forEach((claim) => {
-            totalAmount += claim.amount;
+      const claimedData = await Promise.all(
+        members.map(async (member) => {
+          const claimed = await this.ClaimedHistoryModel.find({
+            walletAddress: member,
+            createdAt: {
+              $gte: new Date(startOfDay),
+              $lte: new Date(endOfDay),
+            },
           });
 
-          claimedAmount += totalAmount;
+          let totalAmount = 0;
 
-          return {
-            address: member,
+          if (claimed.length > 0) {
+            claimed.forEach((claim) => {
+              totalAmount += claim.amount;
+            });
+
+            claimedAmount += totalAmount;
+
+            return {
+              address: member,
+              totalClaim: totalAmount,
+              claimCount: claimed.length,
+            };
+          }
+
+          return null;
+        }),
+      );
+
+      const filteredData = claimedData.filter((item) => item !== null);
+
+      return {
+        totalClaimedMembers: filteredData.length,
+        totalAmountClaimed: claimedAmount,
+        data: filteredData,
+      };
+    } else {
+      const user = await this.User.findOne({ walletAddress: address });
+      if (!user)
+        return { totalClaimedMembers: 0, totalAmountClaimed: 0, data: [] };
+      const claimed = await this.ClaimedHistoryModel.find({
+        walletAddress: address,
+        createdAt: {
+          $gte: new Date(startOfDay),
+          $lte: new Date(endOfDay),
+        },
+      });
+
+      let totalAmount = 0;
+
+      if (claimed.length > 0) {
+        claimed.forEach((claim) => {
+          totalAmount += claim.amount;
+        });
+
+        claimedAmount += totalAmount;
+      }
+
+      return {
+        totalClaimedMembers: 1,
+        totalAmountClaimed: totalAmount,
+        data: [
+          {
+            address: address,
             totalClaim: totalAmount,
             claimCount: claimed.length,
-          };
-        }
-
-        return null; // Return null if no claims found for the member
-      }),
-    );
-
-    // Filter out null values
-    const filteredData = claimedData.filter((item) => item !== null);
-
-    // Return the summary of claimed users and amounts
-    return {
-      totalClaimedMembers: filteredData.length,
-      totalAmountClaimed: claimedAmount,
-      data: filteredData,
-    };
+          },
+        ],
+      };
+    }
   }
 
   // async getUserInfo(walletAddress: string) {
@@ -1050,9 +1081,18 @@ export class AdminService {
       walletAddress: walletAddress,
       isReferred: false,
     });
+    let usdValue = 0;
 
-    selfStakes.forEach((stake) => {
+    selfStakes.forEach(async (stake) => {
       totalStakeAmount += stake.amount;
+      const transaction = await this.Transaction.findOne({
+        distributionHash: stake.txHash,
+        distributionStatus: DistributionStatusEnum.DISTRIBUTED,
+      });
+      console.log(transaction);
+      if (transaction) {
+        usdValue += Number(formatUnits(transaction.amountBigNumber, 18));
+      }
     });
 
     let referredStakes = [];
@@ -1113,18 +1153,30 @@ export class AdminService {
           if (!result[stake.level]) {
             result[stake.level] = [];
           }
+          console.log(refereeStake);
           result[stake.level].push({ stake: refereeStake });
           totalRefStakeAmount += refereeStake.amount;
         }
       }),
     );
 
+    let totalClaimedAmount = 0;
+    const claimedReward = await this.ClaimedHistoryModel.find({
+      walletAddress: walletAddress,
+    });
+
+    claimedReward.forEach((reward) => {
+      totalClaimedAmount += reward.amount;
+    });
+
     return {
       success: true,
       user,
       referedBy,
       totalStakeAmount,
+      usdValue,
       totalRefStakeAmount,
+      totalClaimedAmount,
       selfStakes,
       referredStakes: result,
     };

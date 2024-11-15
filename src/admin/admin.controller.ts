@@ -107,6 +107,7 @@ export class AdminController {
   async getDailyWithdrawals(
     @Query('fromDate') fromDate?: string,
     @Query('toDate') toDate?: string,
+    @Query('address') address?: string,
   ) {
     let parsedFromDate: Date | undefined;
     let parsedToDate: Date | undefined;
@@ -128,22 +129,21 @@ export class AdminController {
     return await this.adminService.getDailyClaimedUsers(
       parsedFromDate,
       parsedToDate,
+      address
     );
   }
 
   @Get('/get-user-info/:address')
   getUserInfo(
     @Param('address') address: string,
-    @Query('level') level?: string, // Accept an optional query parameter for level
-    @Query('dateFrom') dateFrom?: string, // Optional dateFrom query parameter
-    @Query('dateTo') dateTo?: string, // Optional dateTo query parameter
+    @Query('level') level?: string, 
+    @Query('dateFrom') dateFrom?: string, 
+    @Query('dateTo') dateTo?: string, 
   ) {
-    // Convert the level to a number if it exists
     const specificLevel = level ? parseInt(level, 10) : undefined;
 
-    // Convert date strings to Date objects in GMT
-    const fromDate = dateFrom ? new Date(dateFrom + 'Z') : undefined; // Append 'Z' to treat it as UTC/GMT
-    const toDate = dateTo ? new Date(dateTo + 'Z') : undefined; // Append 'Z' to treat it as UTC/GMT
+    const fromDate = dateFrom ? new Date(dateFrom + 'Z') : undefined; 
+    const toDate = dateTo ? new Date(dateTo + 'Z') : undefined; 
 
     return this.adminService.getUserInfo2(
       address,
