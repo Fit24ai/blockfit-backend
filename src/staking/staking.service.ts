@@ -515,69 +515,171 @@ export class StakingService {
   //     throw error;
   //   }
   // }
-  async getTotalMembersAndStaked(
-    address: string,
-    checkedAddresses: Set<string> = new Set(),
-  ): Promise<{
-    totalCount: number;
-    totalTeamStakedAmount: number;
-    stakersWithMoreThanZeroTokens: string[]; // Members with staked tokens > 0
-    stakerCount: number; // Count of members with staked tokens > 0
-  }> {
-    // Avoid recalculating for the same address
-    if (checkedAddresses.has(address)) {
-      return {
-        totalCount: 0,
-        totalTeamStakedAmount: 0,
-        stakersWithMoreThanZeroTokens: [],
-        stakerCount: 0,
-      };
-    }
+  // async getTotalMembersAndStaked(
+  //   address: string,
+  //   checkedAddresses: Set<string> = new Set(),
+  // ): Promise<{
+  //   totalCount: number;
+  //   totalTeamStakedAmount: number;
+  //   stakersWithMoreThanZeroTokens: string[];
+  //   stakerCount: number;
+  // }> {
+  //   if (checkedAddresses.has(address)) {
+  //     return {
+  //       totalCount: 0,
+  //       totalTeamStakedAmount: 0,
+  //       stakersWithMoreThanZeroTokens: [],
+  //       stakerCount: 0,
+  //     };
+  //   }
 
-    // Mark this address as checked
-    checkedAddresses.add(address);
+  //   checkedAddresses.add(address);
 
+  //   try {
+  //     const directMembers =
+  //       await this.ethersService.referralContract.getAllRefrees(address);
+  //     // console.log(address);
+  //     // console.log(directMembers);
+  //     let totalCount = directMembers.length;
+  //     let totalTeamStakedAmount = 0;
+  //     let stakersWithMoreThanZeroTokens: string[] = [];
+
+  //     for (const member of directMembers) {
+  //       const { tokens: memberStakedTokens } =
+  //         await this.getUserTotalTokenStaked(member);
+
+  //       if (memberStakedTokens > 0) {
+  //         totalTeamStakedAmount += memberStakedTokens;
+  //         stakersWithMoreThanZeroTokens.push(member);
+  //       }
+
+  //       // totalTeamStakedAmount += memberStakedTokens;
+  //       //   stakersWithMoreThanZeroTokens.push(member);
+
+  //       const {
+  //         totalCount: memberCount,
+  //         totalTeamStakedAmount: memberTeamStaked,
+  //         stakersWithMoreThanZeroTokens: memberStakers,
+  //         stakerCount: memberStakerCount,
+  //       } = await this.getTotalMembersAndStaked(member, checkedAddresses);
+
+  //       totalCount += memberCount;
+  //       totalTeamStakedAmount += memberTeamStaked;
+  //       stakersWithMoreThanZeroTokens =
+  //         stakersWithMoreThanZeroTokens.concat(memberStakers);
+  //     }
+
+  //     return {
+  //       totalCount,
+  //       totalTeamStakedAmount,
+  //       stakersWithMoreThanZeroTokens,
+  //       stakerCount: stakersWithMoreThanZeroTokens.length,
+  //     };
+  //   } catch (error) {
+  //     console.error('Error fetching members or staked amounts:', error);
+  //     throw error;
+  //   }
+  // }
+
+  // async getTotalMembersAndStaked(
+  //   address: string,
+  //   checkedAddresses: Set<string> = new Set(),
+  //   currentLevel: number = 1, // Track the recursion level
+  // ): Promise<{
+  //   totalCount: number;
+  //   totalTeamStakedAmount: number;
+  //   stakersWithMoreThanZeroTokens: string[];
+  //   stakerCount: number;
+  // }> {
+  //   // Stop recursion if the level exceeds 24
+  //   if (currentLevel > 24 || checkedAddresses.has(address)) {
+  //     return {
+  //       totalCount: 0,
+  //       totalTeamStakedAmount: 0,
+  //       stakersWithMoreThanZeroTokens: [],
+  //       stakerCount: 0,
+  //     };
+  //   }
+
+  //   checkedAddresses.add(address);
+
+  //   try {
+  //     const directMembers =
+  //       await this.ethersService.referralContract.getAllRefrees(address);
+
+  //     let totalCount = directMembers.length;
+  //     let totalTeamStakedAmount = 0;
+  //     let stakersWithMoreThanZeroTokens: string[] = [];
+
+  //     for (const member of directMembers) {
+  //       const { tokens: memberStakedTokens } =
+  //         await this.getUserTotalTokenStaked(member);
+
+  //       if (memberStakedTokens > 0) {
+  //         totalTeamStakedAmount += memberStakedTokens;
+  //         stakersWithMoreThanZeroTokens.push(member);
+  //       }
+
+  //       const {
+  //         totalCount: memberCount,
+  //         totalTeamStakedAmount: memberTeamStaked,
+  //         stakersWithMoreThanZeroTokens: memberStakers,
+  //         stakerCount: memberStakerCount,
+  //       } = await this.getTotalMembersAndStaked(
+  //         member,
+  //         checkedAddresses,
+  //         currentLevel + 1, // Increment the level
+  //       );
+
+  //       totalCount += memberCount;
+  //       totalTeamStakedAmount += memberTeamStaked;
+  //       stakersWithMoreThanZeroTokens =
+  //         stakersWithMoreThanZeroTokens.concat(memberStakers);
+  //     }
+
+  //     return {
+  //       totalCount,
+  //       totalTeamStakedAmount,
+  //       stakersWithMoreThanZeroTokens,
+  //       stakerCount: stakersWithMoreThanZeroTokens.length,
+  //     };
+  //   } catch (error) {
+  //     console.error('Error fetching members or staked amounts:', error);
+  //     throw error;
+  //   }
+  // }
+  async getTotalMembersAndStaked(address: string) {
     try {
-      // Fetch direct members of the current address
-      const directMembers =
-        await this.ethersService.referralContract.getAllRefrees(address);
-      // console.log(address);
-      // console.log(directMembers);
-      let totalCount = directMembers.length;
+      let totalCount = 0;
       let totalTeamStakedAmount = 0;
       let stakersWithMoreThanZeroTokens: string[] = [];
 
-      // Loop through each direct member
-      for (const member of directMembers) {
-        // Fetch and accumulate the staked amount for the member
-        const { tokens: memberStakedTokens } =
-          await this.getUserTotalTokenStaked(member);
+      const referredStakes = await this.StakingModel.find({
+        walletAddress: address,
+        isReferred: true,
+      });
 
-        // Check if the member has staked more than 0 tokens
-        if (memberStakedTokens > 0) {
-          totalTeamStakedAmount += memberStakedTokens;
-          stakersWithMoreThanZeroTokens.push(member); // Add member with staked tokens > 0
-        }
+      await Promise.all(
+        referredStakes.map(async (stake) => {
+          const refereeStake = await this.StakingModel.findOne({
+            stakeId: stake.refId,
+          });
 
-        // Recursively fetch the count and staked amounts for the member's team
-        const {
-          totalCount: memberCount,
-          totalTeamStakedAmount: memberTeamStaked,
-          stakersWithMoreThanZeroTokens: memberStakers,
-          stakerCount: memberStakerCount,
-        } = await this.getTotalMembersAndStaked(member, checkedAddresses);
-
-        totalCount += memberCount;
-        totalTeamStakedAmount += memberTeamStaked;
-        stakersWithMoreThanZeroTokens =
-          stakersWithMoreThanZeroTokens.concat(memberStakers); // Merge nested stakers
-      }
+          if (refereeStake) {
+            if (refereeStake.amount > 0) {
+              totalCount += 1;
+              totalTeamStakedAmount += refereeStake.amount;
+              stakersWithMoreThanZeroTokens.push(refereeStake.walletAddress);
+            }
+          }
+        }),
+      );
 
       return {
         totalCount,
         totalTeamStakedAmount,
         stakersWithMoreThanZeroTokens,
-        stakerCount: stakersWithMoreThanZeroTokens.length, // Count of members with staked tokens > 0
+        stakerCount: stakersWithMoreThanZeroTokens.length,
       };
     } catch (error) {
       console.error('Error fetching members or staked amounts:', error);

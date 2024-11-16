@@ -146,6 +146,10 @@ export class StakingController {
   async getTotalMembers(@Request() req: UserRequest) {
     return this.stakingService.getTotalMembersAndStaked(req.user.walletAddress);
   }
+  @Get('get-total-members-test/:walletAddress')
+  async getTotalMembersTest(@Param('walletAddress') walletAddress: string) {
+    return this.stakingService.getTotalMembersAndStaked(walletAddress);
+  }
   @Get('get-user-level')
   @UseGuards(JwtAuthGuard)
   async getUserLevel(@Request() req: UserRequest) {
