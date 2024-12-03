@@ -373,12 +373,24 @@ export class StakingService {
       walletAddress,
     }).sort({ startTime: -1 });
 
-    for (const referral of referralStream) {
-      const amount = await this.ethersService.icoContract.stakeRewardClaimed(
-        referral.stakeId,
-      );
-      count = Number(amount) + count;
-    }
+    // for (const referral of referralStream) {
+    //   const amount = await this.ethersService.icoContract.stakeRewardClaimed(
+    //     referral.stakeId,
+    //   );
+    //   count = Number(amount) + count;
+    // }
+
+    const amounts = await Promise.all(
+      referralStream.map(async (stake) => {
+        console.log(stake);
+        const amount = await this.ethersService.icoContract.stakeRewardClaimed(
+          stake.stakeId,
+        );
+        return Number(amount);
+      })
+    );
+    
+    count = amounts.reduce((total, current) => total + current, 0);
     return { rewards: Number(formatUnits(count.toString(), 18)) };
   }
   async getAllStakeRewardClaimed(walletAddress: string) {
@@ -388,12 +400,24 @@ export class StakingService {
       walletAddress,
     }).sort({ startTime: -1 });
 
-    for (const referral of referralStream) {
-      const amount = await this.ethersService.icoContract.stakeRewardClaimed(
-        referral.stakeId,
-      );
-      count = Number(amount) + count;
-    }
+    // for (const referral of referralStream) {
+    //   const amount = await this.ethersService.icoContract.stakeRewardClaimed(
+    //     referral.stakeId,
+    //   );
+    //   count = Number(amount) + count;
+    // }
+
+    const amounts = await Promise.all(
+      referralStream.map(async (stake) => {
+        console.log(stake);
+        const amount = await this.ethersService.icoContract.stakeRewardClaimed(
+          stake.stakeId,
+        );
+        return Number(amount);
+      })
+    );
+    
+    count = amounts.reduce((total, current) => total + current, 0);
     return { rewards: Number(formatUnits(count.toString(), 18)) };
   }
 

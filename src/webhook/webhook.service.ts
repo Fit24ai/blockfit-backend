@@ -263,7 +263,7 @@ export class WebhookService {
       try {
         await this.createRefIncome(
           transaction.transactionHash,
-          transaction.chain,
+          // transaction.chain,
         );
       } catch (error) {
         console.log(error);
@@ -276,8 +276,18 @@ export class WebhookService {
     return { message: 'Success' };
   }
 
-  async createRefIncome(tx: string, chain: string) {
-    if (chain === ChainEnum.BINANCE) {
+  async createRefIncome(tx: string) {
+    const transaction = await this.Transaction.findOne({
+      transactionHash: tx,
+      distributionStatus: DistributionStatusEnum.DISTRIBUTED,
+      stakingStatus: StakingStatus.STAKED,
+    });
+    console.log(transaction)
+    const referaltx =await  this.referrlaTransaction.findOne({ transactionHash: tx });
+    console.log(referaltx)
+    if (referaltx) return;
+    if (transaction.chain === "BINANCE") {
+      console.log('BINANCE');
       const receipt =
         await this.ethersService.binanceProvider.getTransactionReceipt(tx);
       const paymentLogs = receipt.logs.filter(
@@ -344,6 +354,75 @@ export class WebhookService {
       }
     }
   }
+
+  // async createRefIncome(tx: string, chain: string) {
+  //   if (chain === ChainEnum.BINANCE) {
+  //     const receipt =
+  //       await this.ethersService.binanceProvider.getTransactionReceipt(tx);
+  //     const paymentLogs = receipt.logs.filter(
+  //       (log) => log.topics[0] === process.env.REFERRAL_INCOME_RECEIVED,
+  //     );
+  //     for (const log of paymentLogs) {
+  //       try {
+  //         const parsedLog = this.ethersService.paymentInterface.parseLog(log);
+  //         console.log('Parsed Log:', parsedLog.args);
+  //         const ref = await this.referrlaTransaction.findOne({
+  //           transactionHash: tx,
+  //         });
+  //         console.log(ref);
+  //         if (!ref) {
+  //           await this.referrlaTransaction.create({
+  //             transactionHash: tx,
+  //             referrer: parsedLog.args[0],
+  //             buyer: parsedLog.args[1],
+  //             buyAmount: this.BigToNumber(parsedLog.args[2]),
+  //             referralIncome: this.BigToNumber(parsedLog.args[3]),
+  //             token: parsedLog.args[4],
+  //             chain: ChainEnum.BINANCE,
+  //           });
+  //           console.log('done');
+  //         }
+  //       } catch (error) {
+  //         console.error('Failed to parse filtered log:', error);
+  //       }
+  //     }
+  //   } else {
+  //     const receipt =
+  //       await this.ethersService.ethereumProvider.getTransactionReceipt(tx);
+  //     const paymentLogs = receipt.logs.filter(
+  //       (log) => log.topics[0] === process.env.REFERRAL_INCOME_RECEIVED,
+  //     );
+
+  //     for (const log of paymentLogs) {
+  //       try {
+  //         const parsedLog = this.ethersService.paymentInterface.parseLog(log);
+  //         console.log('Parsed Log:', parsedLog.args);
+  //         const ref = await this.referrlaTransaction.findOne({
+  //           transactionHash: tx,
+  //         });
+  //         console.log(ref);
+  //         if (!ref) {
+  //           await this.referrlaTransaction.create({
+  //             transactionHash: tx,
+  //             referrer: parsedLog.args[0],
+  //             buyer: parsedLog.args[1],
+  //             buyAmount: this.BigToNumber(
+  //               parseEther(formatUnits(parsedLog.args[2], 6)),
+  //             ),
+  //             referralIncome: this.BigToNumber(
+  //               parseEther(formatUnits(parsedLog.args[3], 6)),
+  //             ),
+  //             token: parsedLog.args[4],
+  //             chain: ChainEnum.ETHEREUM,
+  //           });
+  //           console.log('done');
+  //         }
+  //       } catch (error) {
+  //         console.error('Failed to parse filtered log:', error);
+  //       }
+  //     }
+  //   }
+  // }
 
   private BigToNumber(value: BigInt): number {
     const bigNumberValue = new BigNumber(value.toString());
