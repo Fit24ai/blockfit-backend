@@ -859,10 +859,10 @@ export class AdminService {
     dateFrom?: Date,
     dateTo?: Date,
   ) {
-    console.log(specificLevel);
+    // console.log(specificLevel);
 
-    console.log(dateFrom);
-    console.log(dateTo);
+    // console.log(dateFrom);
+    // console.log(dateTo);
 
     // Fetch the user details
     const user = await this.User.findOne({ walletAddress: walletAddress });
@@ -1065,8 +1065,8 @@ export class AdminService {
     dateFrom?: Date,
     dateTo?: Date,
   ) {
-    console.log(dateFrom);
-    console.log(dateTo);
+    // console.log(dateFrom);
+    // console.log(dateTo);
 
     const user = await this.User.findOne({ walletAddress: walletAddress });
     if (!user) return { success: false, error: 'User not found' };
@@ -1089,7 +1089,7 @@ export class AdminService {
         distributionHash: stake.txHash,
         distributionStatus: DistributionStatusEnum.DISTRIBUTED,
       });
-      console.log(transaction);
+      // console.log(transaction);
       if (transaction) {
         usdValue += Number(formatUnits(transaction.amountBigNumber, 18));
       }
@@ -1137,7 +1137,7 @@ export class AdminService {
         ).getTime() / 1000
       : null;
 
-    console.log(dateFromStart, dateToEnd);
+    // console.log(dateFromStart, dateToEnd);
 
     await Promise.all(
       referredStakes.map(async (stake) => {
@@ -1153,7 +1153,7 @@ export class AdminService {
           if (!result[stake.level]) {
             result[stake.level] = [];
           }
-          console.log(refereeStake);
+          // console.log(refereeStake);
           result[stake.level].push({ stake: refereeStake });
           totalRefStakeAmount += refereeStake.amount;
         }
@@ -1504,7 +1504,7 @@ export class AdminService {
       }
     }
 
-    console.log(selfStakesMap, refStakesMap);
+    // console.log(selfStakesMap, refStakesMap);
 
     // Filter users based on stake amounts and condition
     for (const user of users) {
@@ -1563,9 +1563,9 @@ export class AdminService {
   }
 
   async blockOrUnblockUser(walletAddress: string, block: boolean) {
-    console.log(walletAddress, block);
+    // console.log(walletAddress, block);
     const user = await this.User.findOne({ walletAddress: walletAddress });
-    console.log(user);
+    // console.log(user);
     user.blocked = block;
     await user.save();
     return { success: true };

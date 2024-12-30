@@ -1561,14 +1561,109 @@ export class StakingService {
   //   };
   // }
 
+  // async getQualifiedBusiness(address: string) {
+  //   let tokensLevel = 0;
+  //   let levelCount = 0;
+
+  //   const userTokens = await this.getUserTotalTokenStaked(address);
+
+  //   if (userTokens.tokens >= 12500) {
+  //     const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
+  //     tokensLevel += additionalLevels;
+  //   }
+
+  //   if (tokensLevel > 24) {
+  //     tokensLevel = 24;
+  //   }
+
+  //   const directMembers =
+  //     await this.ethersService.referralContract.getAllRefrees(address);
+  //   levelCount = directMembers.length;
+
+  //   if (levelCount <= tokensLevel) {
+  //     levelCount = tokensLevel;
+  //   }
+
+  //   console.log({ level: levelCount });
+
+  //   if (levelCount < 3 || directMembers.length < 3) {
+  //     return {
+  //       success: false,
+  //       message: 'You need to have at least 3 levels opened!',
+  //     };
+  //   }
+
+  //   const rewardStakes = await this.StakingModel.find({
+  //     walletAddress: address,
+  //     isReferred: true,
+  //   });
+
+  //   const levelBusinessMap = new Map<number, number>();
+
+  //   await Promise.all(
+  //     rewardStakes.map(async (stake) => {
+  //       const referredStake = await this.StakingModel.findOne({
+  //         stakeId: stake.refId,
+  //         isReferred: false,
+  //       });
+
+  //       if (referredStake) {
+  //         const level = stake.level;
+  //         const amount = referredStake.amount;
+
+  //         levelBusinessMap.set(
+  //           level,
+  //           (levelBusinessMap.get(level) || 0) + amount,
+  //         );
+  //       }
+  //     }),
+  //   );
+
+  //   const sortedLevelBusiness = Array.from(levelBusinessMap.entries()).sort(
+  //     (a, b) => b[1] - a[1],
+  //   );
+
+  //   const totalBusiness = sortedLevelBusiness.reduce(
+  //     (sum, [, business]) => sum + business,
+  //     0,
+  //   );
+
+  //   let maxBusiness = 0;
+  //   let maxLevel = null;
+  //   let secondMaxLevel = null;
+
+  //   if (sortedLevelBusiness.length > 0) {
+  //     maxBusiness += sortedLevelBusiness[0][1] * 0.4;
+  //     maxLevel = sortedLevelBusiness[0][0];
+  //   }
+  //   if (sortedLevelBusiness.length > 1) {
+  //     maxBusiness += sortedLevelBusiness[1][1] * 0.3;
+  //     secondMaxLevel = sortedLevelBusiness[1][0];
+  //   }
+
+  //   const remainingBusiness = sortedLevelBusiness
+  //     .slice(2)
+  //     .reduce((sum, [, business]) => sum + business, 0);
+  //   maxBusiness += remainingBusiness * 0.3;
+
+  //   return {
+  //     success: true,
+  //     levelCount,
+  //     totalBusiness,
+  //     maxBusiness,
+  //     maxLevel,
+  //     secondMaxLevel,
+  //     levelBusiness: Object.fromEntries(levelBusinessMap),
+  //     message: `The maximum business is calculated as ${maxBusiness}`,
+  //   };
+  // }
+
   async getQualifiedBusiness(address: string) {
     let tokensLevel = 0;
     let levelCount = 0;
 
-    // Fetch user total tokens staked
     const userTokens = await this.getUserTotalTokenStaked(address);
 
-    // Determine the levels opened based on tokens staked
     if (userTokens.tokens >= 12500) {
       const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
       tokensLevel += additionalLevels;
@@ -1578,7 +1673,6 @@ export class StakingService {
       tokensLevel = 24;
     }
 
-    // Fetch direct members and calculate level count
     const directMembers =
       await this.ethersService.referralContract.getAllRefrees(address);
     levelCount = directMembers.length;
@@ -1587,7 +1681,9 @@ export class StakingService {
       levelCount = tokensLevel;
     }
 
-    console.log({ level: levelCount });
+    // console.log({ level: levelCount });
+
+    console.log({ level: levelCount, directMembers: directMembers.length });
 
     if (levelCount < 3) {
       return {
@@ -1596,14 +1692,12 @@ export class StakingService {
       };
     }
 
-    // Fetch referred stakes for the user
     const rewardStakes = await this.StakingModel.find({
       walletAddress: address,
       isReferred: true,
     });
 
-    // Calculate business for each level
-    const levelBusinessMap = new Map<number, number>(); // Stores total business for each level
+    const levelBusinessMap = new Map<number, number>();
 
     await Promise.all(
       rewardStakes.map(async (stake) => {
@@ -1613,10 +1707,9 @@ export class StakingService {
         });
 
         if (referredStake) {
-          const level = stake.level; // Get the level from the referred stake
+          const level = stake.level;
           const amount = referredStake.amount;
 
-          // Accumulate the amount for the corresponding level
           levelBusinessMap.set(
             level,
             (levelBusinessMap.get(level) || 0) + amount,
@@ -1625,12 +1718,25 @@ export class StakingService {
       }),
     );
 
-    // Sort levels by business in descending order
+    console.log(levelBusinessMap);
+
+    // Check if levels 1, 2, or 3 have staking
+    const levels = [3];
+    const hasStakingOnOrAboveThirdLevel = levels.some(
+      (level) => (levelBusinessMap.get(level) || 0) > 0,
+    );
+
+    if (!hasStakingOnOrAboveThirdLevel) {
+      return {
+        success: false,
+        message: 'You must have staking on or above the 3rd level!',
+      };
+    }
+
     const sortedLevelBusiness = Array.from(levelBusinessMap.entries()).sort(
       (a, b) => b[1] - a[1],
     );
 
-    // Calculate the maximum business distribution
     const totalBusiness = sortedLevelBusiness.reduce(
       (sum, [, business]) => sum + business,
       0,
@@ -1641,27 +1747,26 @@ export class StakingService {
     let secondMaxLevel = null;
 
     if (sortedLevelBusiness.length > 0) {
-      maxBusiness += sortedLevelBusiness[0][1] * 0.4; // 40% of the highest business
-      maxLevel = sortedLevelBusiness[0][0]; // Level with the highest business
+      maxBusiness += sortedLevelBusiness[0][1] * 0.4;
+      maxLevel = sortedLevelBusiness[0][0];
     }
     if (sortedLevelBusiness.length > 1) {
-      maxBusiness += sortedLevelBusiness[1][1] * 0.3; // 30% of the second-highest business
-      secondMaxLevel = sortedLevelBusiness[1][0]; // Level with the second-highest business
+      maxBusiness += sortedLevelBusiness[1][1] * 0.3;
+      secondMaxLevel = sortedLevelBusiness[1][0];
     }
 
-    // Combine the remaining levels and take 30% of their total
     const remainingBusiness = sortedLevelBusiness
       .slice(2)
       .reduce((sum, [, business]) => sum + business, 0);
-    maxBusiness += remainingBusiness * 0.3; // 30% of the remaining levels' business
+    maxBusiness += remainingBusiness * 0.3;
 
     return {
       success: true,
       levelCount,
       totalBusiness,
       maxBusiness,
-      maxLevel, // Highest business level
-      secondMaxLevel, // Second-highest business level
+      maxLevel,
+      secondMaxLevel,
       levelBusiness: Object.fromEntries(levelBusinessMap),
       message: `The maximum business is calculated as ${maxBusiness}`,
     };
