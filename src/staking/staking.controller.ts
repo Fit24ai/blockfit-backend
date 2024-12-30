@@ -106,18 +106,18 @@ export class StakingController {
   @Get('get-referral-stream/:level?') // Make level optional with ?
   async getReferralStream(
     @Request() req: UserRequest,
-    @Param('level') level?: number, // Make level optional
+    @Param('level') level?: number,
   ) {
     const walletAddress = req.user.walletAddress;
     return this.stakingService.getReferralStream(walletAddress, level);
   }
 
-  @Post('get-referral-stream-test/:level?') // Make level optional with ?
+  @Post('get-referral-stream-test/:level?')
   async getReferralStreamTest(
     @Body() body: { walletAddress: string },
-    @Param('level') level?: number, // Make level optional
+    @Param('level') level?: number,
   ) {
-    return this.stakingService.getReferralStream(body.walletAddress, level);
+    return this.stakingService.getReferralStreamTest(body.walletAddress, level);
   }
 
   @Get('get-user-staked-tokens')
@@ -220,5 +220,20 @@ export class StakingController {
   @Get('get-referral-income/:address')
   async getReferralIncome(@Param('address') address: string) {
     return this.stakingService.getReferralIncome(address);
+  }
+
+  @Get('get-team-details/:address')
+  async getTeamWithLevelsAndTotal(@Param('address') address: string) {
+    return this.stakingService.getTeamWithLevelsAndTotal(address);
+  }
+
+  @Get('get-team-details-infinity/:address')
+  async getTeamWithInfiniteLevels(@Param('address') address: string) {
+    return this.stakingService.getTeamWithInfiniteLevels(address);
+  }
+
+  @Get('get-qualified-business/:address')
+  async getQualifiedBusiness(@Param('address') address: string) {
+    return this.stakingService.getQualifiedBusiness(address);
   }
 }

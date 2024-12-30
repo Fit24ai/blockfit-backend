@@ -26,6 +26,10 @@ import {
   ReferralTransaction,
   ReferralTransactionSchema,
 } from 'src/webhook/schema/referralTransaction.schema';
+import {
+  ReferralTrail,
+  ReferralTrailSchema,
+} from './schema/referralTrail.schema';
 
 @Module({
   imports: [
@@ -36,6 +40,7 @@ import {
       { name: StakingTransaction.name, schema: StakingTransactionSchema },
       { name: ReferralTransaction.name, schema: ReferralTransactionSchema },
       { name: User.name, schema: UserSchema },
+      { name: ReferralTrail.name, schema: ReferralTrailSchema },
       {
         name: ClaimedRewardForStakeHistory.name,
         schema: ClaimedRewardForStakeHistorySchema,

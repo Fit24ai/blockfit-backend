@@ -4,6 +4,8 @@ import { StakingTransactionService } from './staking-transaction.service';
 
 describe('StakingTransactionController', () => {
   let controller: StakingTransactionController;
+  
+
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -11,7 +13,9 @@ describe('StakingTransactionController', () => {
       providers: [StakingTransactionService],
     }).compile();
 
-    controller = module.get<StakingTransactionController>(StakingTransactionController);
+    controller = module.get<StakingTransactionController>(
+      StakingTransactionController,
+    );
   });
 
   it('should be defined', () => {

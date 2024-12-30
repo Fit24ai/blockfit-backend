@@ -29,6 +29,10 @@ export class EthersService {
     process.env.BINANCE_PRC_PROVIDER,
   );
 
+  // public readonly tonProvider = new JsonRpcProvider(
+  //   'https://toncenter.com/api/v2/jsonRPC',
+  // );
+
   private readonly signer = new Wallet(
     process.env.PRIVATE_KEY,
     this.icoProvider,

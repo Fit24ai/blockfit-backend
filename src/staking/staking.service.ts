@@ -33,6 +33,7 @@ import {
 import { ClaimedHistory } from './schema/claimedHistory.schema';
 import { StakingTransaction } from 'src/staking-transaction/schema/stakingTransaction.schema';
 import { ReferralTransaction } from 'src/webhook/schema/referralTransaction.schema';
+import { ReferralTrail } from './schema/referralTrail.schema';
 
 @Injectable()
 export class StakingService {
@@ -51,6 +52,8 @@ export class StakingService {
     private User: Model<User>,
     @InjectModel(ClaimedHistory.name)
     private claimedHistotyModel: Model<ClaimedHistory>,
+    @InjectModel(ReferralTrail.name)
+    private referralTrailModel: Model<ReferralTrail>,
   ) {}
 
   private BigIntToNumber(value: BigInt) {
@@ -387,9 +390,9 @@ export class StakingService {
           stake.stakeId,
         );
         return Number(amount);
-      })
+      }),
     );
-    
+
     count = amounts.reduce((total, current) => total + current, 0);
     return { rewards: Number(formatUnits(count.toString(), 18)) };
   }
@@ -414,9 +417,9 @@ export class StakingService {
           stake.stakeId,
         );
         return Number(amount);
-      })
+      }),
     );
-    
+
     count = amounts.reduce((total, current) => total + current, 0);
     return { rewards: Number(formatUnits(count.toString(), 18)) };
   }
@@ -463,6 +466,56 @@ export class StakingService {
     }
 
     return result.length ? result : [];
+  }
+  async getReferralStreamTest(walletAddress: string, level?: number) {
+    // const referralStream = await this.StakingModel.find({
+    //   isReferred: true,
+    //   walletAddress,
+    // }).sort({ startTime: -1 });
+
+    let result = [];
+    let totalDailyReward = 0;
+
+    // Fetch referrals based on level
+    if (level) {
+      result = await this.getReferralsByLevel(walletAddress, level);
+    } else {
+      // If no level is provided, fetch all referral levels
+      const referralStream = await this.StakingModel.find({
+        isReferred: true,
+        walletAddress,
+      }).sort({ startTime: -1 });
+
+      // console.log(referralStream)
+
+      for (const referral of referralStream) {
+        const referredUser = await this.StakingModel.findOne({
+          stakeId: referral.refId,
+        }).exec();
+
+        // console.log(referredUser)
+
+        if (referredUser) {
+          result.push({
+            referralDetails: referral,
+            referreDetails: {
+              referre: referredUser.walletAddress,
+              amount: referredUser.amount,
+              stakeDuration: referredUser.stakeDuration,
+              startTime: referredUser.startTime,
+            },
+          });
+          console.log(Number((referral.amount * referral.apr) / 36500));
+          totalDailyReward =
+            totalDailyReward + Number((referral.amount * referral.apr) / 36500);
+        }
+      }
+    }
+
+    return {
+      result: result.length ? result : [],
+      totalDailyReward,
+    };
   }
 
   private async getReferralsByLevel(walletAddress: string, level: number) {
@@ -1083,6 +1136,534 @@ export class StakingService {
     return {
       membersData: refIncomes,
       totalReferralIncome,
+    };
+  }
+
+  // async getTeamWithLevelsAndTotal(userAddress: string): Promise<{
+  //   totalTeamSize: number;
+  //   levels: { level: number; members: string[] }[];
+  // }> {
+  //   const maxLevels = 24;
+
+  //   // Recursive function to collect members at each level
+  //   const fetchTeamWithLevels = async (
+  //     addresses: string[],
+  //     level: number,
+  //     result: { level: number; members: string[] }[],
+  //   ): Promise<{
+  //     totalTeamSize: number;
+  //     levels: { level: number; members: string[] }[];
+  //   }> => {
+  //     if (level > maxLevels || addresses.length === 0) {
+  //       const totalTeamSize = result.reduce(
+  //         (sum, levelData) => sum + levelData.members.length,
+  //         0,
+  //       );
+  //       return { totalTeamSize, levels: result };
+  //     }
+
+  //     // Fetch direct members for all addresses at the current level
+  //     const allDirectMembers = (
+  //       await Promise.all(
+  //         addresses.map(async (address) => {
+  //           const user = await this.referralTrailModel.findOne({
+  //             userAddress: address,
+  //           });
+  //           return user?.directMembers || [];
+  //         }),
+  //       )
+  //     ).flat(); // Flatten the array of arrays
+
+  //     // Add current level data to the result
+  //     result.push({ level, members: allDirectMembers });
+
+  //     // Recursively collect data for the next level
+  //     return fetchTeamWithLevels(allDirectMembers, level + 1, result);
+  //   };
+
+  //   // Start recursion from the given user at level 1
+  //   return await fetchTeamWithLevels([userAddress], 1, []);
+  // }
+
+  // async getTeamWithInfiniteLevels(userAddress: string): Promise<{
+  //   totalTeamSize: number;
+  //   levels: { level: number; members: string[] }[]
+  // }> {
+  //   // Recursive function to collect members at each level
+  //   const fetchTeamWithLevels = async (
+  //     addresses: string[],
+  //     level: number,
+  //     result: { level: number; members: string[] }[]
+  //   ): Promise<{ totalTeamSize: number; levels: { level: number; members: string[] }[] }> => {
+  //     if (addresses.length === 0) {
+  //       const totalTeamSize = result.reduce((sum, levelData) => sum + levelData.members.length, 0);
+  //       return { totalTeamSize, levels: result };
+  //     }
+
+  //     // Fetch direct members for all addresses at the current level
+  //     const allDirectMembers = (
+  //       await Promise.all(
+  //         addresses.map(async (address) => {
+  //           const user = await this.referralTrailModel.findOne({ userAddress: address });
+  //           return user?.directMembers || [];
+  //         })
+  //       )
+  //     ).flat(); // Flatten the array of arrays
+
+  //     // Stop recursion if no new members are found
+  //     if (allDirectMembers.length === 0) {
+  //       const totalTeamSize = result.reduce((sum, levelData) => sum + levelData.members.length, 0);
+  //       return { totalTeamSize, levels: result };
+  //     }
+
+  //     // Add current level data to the result
+  //     result.push({ level, members: allDirectMembers });
+
+  //     // Recursively collect data for the next level
+  //     return fetchTeamWithLevels(allDirectMembers, level + 1, result);
+  //   };
+
+  //   // Start recursion from the given user at level 1
+  //   return await fetchTeamWithLevels([userAddress], 1, []);
+  // }
+
+  async getTeamWithLevelsAndTotal(userAddress: string): Promise<{
+    totalTeamSize: number;
+    totalBusiness: number; // Total business across all levels
+    levels: { level: number; members: string[]; business: number }[]; // Business at each level
+  }> {
+    const maxLevels = 24;
+
+    const result = [];
+
+    let currentLevelAddresses = [userAddress];
+
+    for (let level = 1; level <= maxLevels; level++) {
+      // Fetch direct members for all addresses at the current level
+      const allDirectMembers = (
+        await Promise.all(
+          currentLevelAddresses.map(async (address) => {
+            const user = await this.referralTrailModel.findOne({
+              userAddress: address,
+            });
+            return user?.directMembers || [];
+          }),
+        )
+      ).flat(); // Flatten the array of arrays
+
+      // Get business data (total stake) for all direct members at the current level
+      const membersBusinessData = await Promise.all(
+        allDirectMembers.map(async (member) => {
+          const stakeData = await this.StakingModel.aggregate([
+            { $match: { walletAddress: member, isReferred: false } },
+            { $group: { _id: null, totalStake: { $sum: '$amount' } } },
+          ]);
+
+          // console.log('Stake Data:', stakeData); // Log the entire stake data result
+
+          // if (stakeData.length === 0) {
+          //   console.log('No stake data found for member:', member);
+          // } else {
+          //   console.log('Total Stake:', stakeData[0].totalStake); // Print the total stake value
+          // }
+
+          return {
+            userAddress: member,
+            business: stakeData.length > 0 ? stakeData[0].totalStake : 0,
+          };
+        }),
+      );
+
+      // Calculate the total business for the current level
+      const levelBusiness = membersBusinessData.reduce(
+        (sum, data) => sum + data.business,
+        0,
+      );
+
+      // Add current level data to the result
+      result.push({
+        level,
+        members: allDirectMembers,
+        business: levelBusiness,
+      });
+
+      // Set currentLevelAddresses for the next level
+      currentLevelAddresses = allDirectMembers;
+
+      // If no members found, stop the loop early
+      if (currentLevelAddresses.length === 0) {
+        break;
+      }
+    }
+
+    // Calculate the total team size and total business
+    const totalTeamSize = result.reduce(
+      (sum, levelData) => sum + levelData.members.length,
+      0,
+    );
+    const totalBusiness = result.reduce(
+      (sum, levelData) => sum + levelData.business,
+      0,
+    );
+
+    return { totalTeamSize, totalBusiness, levels: result };
+  }
+
+  async getTeamWithInfiniteLevels(userAddress: string): Promise<{
+    totalTeamSize: number;
+    totalBusiness: number;
+    levels: {
+      level: number;
+      members: { userAddress: string; business: number }[];
+    }[];
+  }> {
+    // Recursive function to collect members at each level and calculate business
+    const fetchTeamWithLevels = async (
+      addresses: string[],
+      level: number,
+      result: {
+        level: number;
+        members: { userAddress: string; business: number }[];
+      }[],
+    ): Promise<{
+      totalTeamSize: number;
+      totalBusiness: number;
+      levels: {
+        level: number;
+        members: { userAddress: string; business: number }[];
+      }[];
+    }> => {
+      if (addresses.length === 0) {
+        const totalTeamSize = result.reduce(
+          (sum, levelData) => sum + levelData.members.length,
+          0,
+        );
+        const totalBusiness = result.reduce(
+          (sum, levelData) =>
+            sum +
+            levelData.members.reduce(
+              (subSum, member) => subSum + member.business,
+              0,
+            ),
+          0,
+        );
+        return { totalTeamSize, totalBusiness, levels: result };
+      }
+
+      // Fetch direct members and their stakes (business) for all addresses at the current level
+      const allDirectMembers = await Promise.all(
+        addresses.map(async (address) => {
+          const user = await this.referralTrailModel.findOne({
+            userAddress: address,
+          });
+          const directMembers = user?.directMembers || [];
+
+          // Fetch business (stake) for each direct member
+          return await Promise.all(
+            directMembers.map(async (member) => {
+              const stakeData = await this.StakingModel.aggregate([
+                { $match: { walletAddress: member, isReferred: false } },
+                { $group: { _id: null, totalStake: { $sum: '$amount' } } },
+              ]);
+
+              console.log('Stake Data:', stakeData); // Log the entire stake data result
+
+              if (stakeData.length === 0) {
+                console.log('No stake data found for member:', member);
+              } else {
+                console.log('Total Stake:', stakeData[0].totalStake); // Print the total stake value
+              }
+
+              return {
+                userAddress: member,
+                business: stakeData.length > 0 ? stakeData[0].totalStake : 0,
+              };
+            }),
+          );
+        }),
+      );
+
+      // Flatten the array of arrays
+      const membersWithBusiness = allDirectMembers.flat();
+
+      // Stop recursion if no new members are found
+      if (membersWithBusiness.length === 0) {
+        const totalTeamSize = result.reduce(
+          (sum, levelData) => sum + levelData.members.length,
+          0,
+        );
+        const totalBusiness = result.reduce(
+          (sum, levelData) =>
+            sum +
+            levelData.members.reduce(
+              (subSum, member) => subSum + member.business,
+              0,
+            ),
+          0,
+        );
+        return { totalTeamSize, totalBusiness, levels: result };
+      }
+
+      // Add current level data to the result
+      result.push({ level, members: membersWithBusiness });
+
+      // Recursively collect data for the next level
+      return fetchTeamWithLevels(
+        membersWithBusiness.map((m) => m.userAddress),
+        level + 1,
+        result,
+      );
+    };
+
+    // Start recursion from the given user at level 1
+    return await fetchTeamWithLevels([userAddress], 1, []);
+  }
+
+  // async getQualifiedBusiness(address: string) {
+  //   let tokensLevel = 0;
+  //   let levelCount = 0;
+  //   const userTokens = await this.getUserTotalTokenStaked(address);
+
+  //   if (userTokens.tokens >= 12500) {
+  //     const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
+  //     tokensLevel += additionalLevels;
+  //   }
+
+  //   if (tokensLevel > 24) {
+  //     tokensLevel = 24;
+  //   }
+
+  //   const directMembers =
+  //     await this.ethersService.referralContract.getAllRefrees(address);
+
+  //   levelCount = directMembers.length;
+
+  //   if (levelCount <= tokensLevel) {
+  //     levelCount = tokensLevel;
+  //   }
+
+  //   console.log({ level: levelCount });
+  //   if (levelCount < 3) {
+  //     return {
+  //       success: false,
+  //       message: 'You need to have at least 3 levels opened!',
+  //     };
+  //   }
+  //   const rewardStakes = await this.StakingModel.find({
+  //     walletAddress: address,
+  //     isReferred: true,
+  //   });
+
+  //   rewardStakes.map(async (stake) => {
+  //     const referredStake = await this.StakingModel.findOne({
+  //       stakeId: stake.refId,
+  //       isReferred: false,
+  //     });
+  //   });
+  // }
+
+  // async getQualifiedBusiness(address: string) {
+  //   let tokensLevel = 0;
+  //   let levelCount = 0;
+
+  //   // Fetch user total tokens staked
+  //   const userTokens = await this.getUserTotalTokenStaked(address);
+
+  //   // Determine the levels opened based on tokens staked
+  //   if (userTokens.tokens >= 12500) {
+  //     const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
+  //     tokensLevel += additionalLevels;
+  //   }
+
+  //   if (tokensLevel > 24) {
+  //     tokensLevel = 24;
+  //   }
+
+  //   // Fetch direct members and calculate level count
+  //   const directMembers =
+  //     await this.ethersService.referralContract.getAllRefrees(address);
+  //   levelCount = directMembers.length;
+
+  //   if (levelCount <= tokensLevel) {
+  //     levelCount = tokensLevel;
+  //   }
+
+  //   console.log({ level: levelCount });
+
+  //   if (levelCount < 3) {
+  //     return {
+  //       success: false,
+  //       message: 'You need to have at least 3 levels opened!',
+  //     };
+  //   }
+
+  //   // Fetch referred stakes for the user
+  //   const rewardStakes = await this.StakingModel.find({
+  //     walletAddress: address,
+  //     isReferred: true,
+  //   });
+
+  //   // Calculate business for each level
+  //   const levelBusinessMap = new Map<number, number>(); // Stores total business for each level
+
+  //   await Promise.all(
+  //     rewardStakes.map(async (stake) => {
+  //       const referredStake = await this.StakingModel.findOne({
+  //         stakeId: stake.refId,
+  //         isReferred: false,
+  //       });
+
+  //       if (referredStake) {
+  //         const level = stake.level; // Get the level from the referred stake
+  //         const amount = referredStake.amount;
+
+  //         // Accumulate the amount for the corresponding level
+  //         levelBusinessMap.set(
+  //           level,
+  //           (levelBusinessMap.get(level) || 0) + amount,
+  //         );
+  //       }
+  //     }),
+  //   );
+
+  //   // Sort levels by business in descending order
+  //   const sortedLevelBusiness = Array.from(levelBusinessMap.entries()).sort(
+  //     (a, b) => b[1] - a[1],
+  //   );
+
+  //   // Calculate the maximum business distribution
+  //   const totalBusiness = sortedLevelBusiness.reduce(
+  //     (sum, [, business]) => sum + business,
+  //     0,
+  //   );
+
+  //   let maxBusiness = 0;
+  //   if (sortedLevelBusiness.length > 0) {
+  //     maxBusiness += sortedLevelBusiness[0][1] * 0.4; // 40% of the highest business
+  //   }
+  //   if (sortedLevelBusiness.length > 1) {
+  //     maxBusiness += sortedLevelBusiness[1][1] * 0.3; // 30% of the second-highest business
+  //   }
+
+  //   // Combine the remaining levels and take 30% of their total
+  //   const remainingBusiness = sortedLevelBusiness
+  //     .slice(2)
+  //     .reduce((sum, [, business]) => sum + business, 0);
+  //   maxBusiness += remainingBusiness * 0.3; // 30% of the remaining levels' business
+
+  //   return {
+  //     success: true,
+  //     levelCount,
+  //     totalBusiness,
+  //     maxBusiness,
+  //     levelBusiness: Object.fromEntries(levelBusinessMap),
+  //     message: `The maximum business is calculated as ${maxBusiness}`,
+  //   };
+  // }
+
+  async getQualifiedBusiness(address: string) {
+    let tokensLevel = 0;
+    let levelCount = 0;
+
+    // Fetch user total tokens staked
+    const userTokens = await this.getUserTotalTokenStaked(address);
+
+    // Determine the levels opened based on tokens staked
+    if (userTokens.tokens >= 12500) {
+      const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
+      tokensLevel += additionalLevels;
+    }
+
+    if (tokensLevel > 24) {
+      tokensLevel = 24;
+    }
+
+    // Fetch direct members and calculate level count
+    const directMembers =
+      await this.ethersService.referralContract.getAllRefrees(address);
+    levelCount = directMembers.length;
+
+    if (levelCount <= tokensLevel) {
+      levelCount = tokensLevel;
+    }
+
+    console.log({ level: levelCount });
+
+    if (levelCount < 3) {
+      return {
+        success: false,
+        message: 'You need to have at least 3 levels opened!',
+      };
+    }
+
+    // Fetch referred stakes for the user
+    const rewardStakes = await this.StakingModel.find({
+      walletAddress: address,
+      isReferred: true,
+    });
+
+    // Calculate business for each level
+    const levelBusinessMap = new Map<number, number>(); // Stores total business for each level
+
+    await Promise.all(
+      rewardStakes.map(async (stake) => {
+        const referredStake = await this.StakingModel.findOne({
+          stakeId: stake.refId,
+          isReferred: false,
+        });
+
+        if (referredStake) {
+          const level = stake.level; // Get the level from the referred stake
+          const amount = referredStake.amount;
+
+          // Accumulate the amount for the corresponding level
+          levelBusinessMap.set(
+            level,
+            (levelBusinessMap.get(level) || 0) + amount,
+          );
+        }
+      }),
+    );
+
+    // Sort levels by business in descending order
+    const sortedLevelBusiness = Array.from(levelBusinessMap.entries()).sort(
+      (a, b) => b[1] - a[1],
+    );
+
+    // Calculate the maximum business distribution
+    const totalBusiness = sortedLevelBusiness.reduce(
+      (sum, [, business]) => sum + business,
+      0,
+    );
+
+    let maxBusiness = 0;
+    let maxLevel = null;
+    let secondMaxLevel = null;
+
+    if (sortedLevelBusiness.length > 0) {
+      maxBusiness += sortedLevelBusiness[0][1] * 0.4; // 40% of the highest business
+      maxLevel = sortedLevelBusiness[0][0]; // Level with the highest business
+    }
+    if (sortedLevelBusiness.length > 1) {
+      maxBusiness += sortedLevelBusiness[1][1] * 0.3; // 30% of the second-highest business
+      secondMaxLevel = sortedLevelBusiness[1][0]; // Level with the second-highest business
+    }
+
+    // Combine the remaining levels and take 30% of their total
+    const remainingBusiness = sortedLevelBusiness
+      .slice(2)
+      .reduce((sum, [, business]) => sum + business, 0);
+    maxBusiness += remainingBusiness * 0.3; // 30% of the remaining levels' business
+
+    return {
+      success: true,
+      levelCount,
+      totalBusiness,
+      maxBusiness,
+      maxLevel, // Highest business level
+      secondMaxLevel, // Second-highest business level
+      levelBusiness: Object.fromEntries(levelBusinessMap),
+      message: `The maximum business is calculated as ${maxBusiness}`,
     };
   }
 }
