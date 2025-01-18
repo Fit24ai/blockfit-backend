@@ -17,12 +17,12 @@ import { TransferModule } from './transfer/transfer.module';
 import { ListsModule } from './lists/lists.module';
 import { RandomiserModule } from './randomiser/randomiser.module';
 import { StakingModule } from './staking/staking.module';
+
 import { ReferralModule } from './referral/referral.module';
 import { NotificationModule } from './notification/notification.module';
 import { StakingTransactionModule } from './staking-transaction/staking-transaction.module';
 import { RedisModule } from './redis/redis.module';
 import { AdminModule } from './admin/admin.module';
-import { RankRewardsModule } from './rank-rewards/rank-rewards.module';
 
 @Module({
   imports: [
@@ -64,7 +64,6 @@ import { RankRewardsModule } from './rank-rewards/rank-rewards.module';
     StakingTransactionModule,
     RedisModule,
     AdminModule,
-    RankRewardsModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy],
