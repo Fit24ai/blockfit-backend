@@ -13,7 +13,7 @@ import { SentryExceptionFilter } from './utils/sentry-exception-handler';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     cors: {
-      origin: '*',
+      origin: ['https://fit24.expert'],
     },
   });
 

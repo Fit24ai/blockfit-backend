@@ -41,9 +41,9 @@ export class AdminService {
       return { success: false, error: 'Invalid username or password' };
     }
 
-    return { success: false, error: 'Invalid username or password' };
+    // return { success: false, error: 'Invalid username or password' };
 
-    // return this.signToken(admin._id.toString());
+    return this.signToken(admin._id.toString());
   }
 
   async create(request: AdminLoginDto) {
