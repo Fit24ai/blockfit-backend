@@ -23,6 +23,8 @@ import { NotificationModule } from './notification/notification.module';
 import { StakingTransactionModule } from './staking-transaction/staking-transaction.module';
 import { RedisModule } from './redis/redis.module';
 import { AdminModule } from './admin/admin.module';
+import { RankRewardsModule } from './rank-rewards/rank-rewards.module';
+import { RewardsModule } from './rewards/rewards.module';
 
 @Module({
   imports: [
@@ -64,6 +66,8 @@ import { AdminModule } from './admin/admin.module';
     StakingTransactionModule,
     RedisModule,
     AdminModule,
+    RankRewardsModule,
+    RewardsModule,
   ],
   controllers: [AppController],
   providers: [AppService, JwtStrategy],

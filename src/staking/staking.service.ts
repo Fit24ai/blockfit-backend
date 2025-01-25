@@ -385,16 +385,21 @@ export class StakingService {
 
     const amounts = await Promise.all(
       referralStream.map(async (stake) => {
-        console.log(stake);
+        // console.log(stake);
         const amount = await this.ethersService.icoContract.stakeRewardClaimed(
           stake.stakeId,
         );
-        return Number(amount);
+        return Number(formatUnits(amount, 18));
       }),
     );
+    console.log({ amounts });
 
     count = amounts.reduce((total, current) => total + current, 0);
-    return { rewards: Number(formatUnits(count.toString(), 18)) };
+    // count = amounts.reduce(
+    //   (total, current) => total + Number(formatUnits(current.toString(), 18)),
+    //   0,
+    // );
+    return { rewards: count };
   }
   async getAllStakeRewardClaimed(walletAddress: string) {
     let count = 0;
@@ -416,12 +421,12 @@ export class StakingService {
         const amount = await this.ethersService.icoContract.stakeRewardClaimed(
           stake.stakeId,
         );
-        return Number(amount);
+        return Number(formatUnits(amount, 18));
       }),
     );
 
     count = amounts.reduce((total, current) => total + current, 0);
-    return { rewards: Number(formatUnits(count.toString(), 18)) };
+    return { rewards: count };
   }
 
   async getReferralStream(walletAddress: string, level?: number) {

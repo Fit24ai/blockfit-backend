@@ -135,11 +135,25 @@ export class StakingController {
     );
   }
 
+  // @UseGuards(JwtAuthGuard)
+  // @Get('get-all-level-claimed-rewards-test')
+  // async getAllRefrralRewardClaimedTest(@Request() req: UserRequest) {
+  //   return this.stakingService.getAllRefrralRewardClaimed(
+  //     '0xC880BB186487E12B83f4D40AAb489DaB2aF30Cc2',
+  //   );
+  // }
+
   @UseGuards(JwtAuthGuard)
   @Get('get-all-stake-claimed-rewards')
   async getAllStakeRewardClaimed(@Request() req: UserRequest) {
     return this.stakingService.getAllStakeRewardClaimed(req.user.walletAddress);
   }
+  // @Get('get-all-stake-claimed-rewards-test')
+  // async getAllStakeRewardClaimedTest() {
+  //   return this.stakingService.getAllStakeRewardClaimed(
+  //     '0xC880BB186487E12B83f4D40AAb489DaB2aF30Cc2',
+  //   );
+  // }
 
   @Get('get-total-members')
   @UseGuards(JwtAuthGuard)
