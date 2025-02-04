@@ -16,6 +16,9 @@ import {
 } from 'src/staking/schema/claimedHistory.schema';
 import { EthersService } from 'src/ethers/ethers.service';
 import { Rewards, RewardsSchema } from './entities/reward.entity';
+import { JwtService } from '@nestjs/jwt';
+import { AdminJwtStrategy } from 'src/passport/admin-passport.strategy';
+import { S3Service } from 'src/utils/s3Sevice';
 
 @Module({
   imports: [
@@ -33,6 +36,12 @@ import { Rewards, RewardsSchema } from './entities/reward.entity';
     ]),
   ],
   controllers: [RewardsController],
-  providers: [RewardsService, EthersService],
+  providers: [
+    RewardsService,
+    EthersService,
+    JwtService,
+    AdminJwtStrategy,
+    S3Service,
+  ],
 })
 export class RewardsModule {}

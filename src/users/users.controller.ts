@@ -1,6 +1,8 @@
 import {
   Body,
   Controller,
+  Get,
+  Param,
   Post,
   UsePipes,
   ValidationPipe,
@@ -18,5 +20,10 @@ export class UsersController {
   @UsePipes(ValidationPipe)
   login(@Body() requestBody: LoginDto): {} {
     return this.usersService.login(requestBody);
+  }
+
+  @Get('/block-status/:address')
+  async getUserBlockStatus(@Param('address') address: string) {
+    return this.usersService.getUserBlockStatus(address);
   }
 }

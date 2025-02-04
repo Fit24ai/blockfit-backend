@@ -4,13 +4,20 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Request,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { RewardsService } from './rewards.service';
-import { JwtAuthGuard } from 'src/passport/passport.guard';
+import { AdminJwtAuthGuard, JwtAuthGuard } from 'src/passport/passport.guard';
 import { UserRequest } from 'src/types/user';
 import { CreateRewardDto } from './dto/createReward.dto';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { UploadImageDto } from './dto/uploadImage.dto';
 
 @Controller('rewards')
 export class RewardsController {
@@ -32,8 +39,17 @@ export class RewardsController {
   }
 
   @Post('create')
-  async create(@Body() body: CreateRewardDto) {
-    return this.rewardsService.createReward(body);
+  @UseGuards(AdminJwtAuthGuard)
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'image', maxCount: 1 },
+    ]),
+  )
+  async create(
+    @UploadedFiles()
+    files: UploadImageDto,
+    @Body() body: CreateRewardDto) {
+    return this.rewardsService.createReward(body, files);
   }
 
   @Get('claim-reward/:id')
@@ -50,7 +66,7 @@ export class RewardsController {
   @UseGuards(JwtAuthGuard)
   async getUnclaimedRewards(@Request() req: UserRequest) {
     // return this.rewardsService.getAllUnclaimedRewards(req.user._id);
-    return this.rewardsService.getAllUnclaimedRewards(
+    return this.rewardsService.getAllUnclaimedRewards2(
       '0x8725A3dbbc7b1bc74947B34922eB1b82F0aAb2C7',
     );
   }
@@ -71,5 +87,51 @@ export class RewardsController {
     return this.rewardsService.getAllClaimedPendingRewards(
       '0x8725A3dbbc7b1bc74947B34922eB1b82F0aAb2C7',
     );
+  }
+
+  @Get('active-rewards')
+  @UsePipes(ValidationPipe)
+  @UseGuards(AdminJwtAuthGuard)
+  async getActiveRewards() {
+    return this.rewardsService.getAllActiveRewards();
+  }
+
+  @Get('expired-rewards')
+  @UsePipes(ValidationPipe)
+  @UseGuards(AdminJwtAuthGuard)
+  async getExpiredRewards() {
+    return this.rewardsService.getAllExpiredRewards();
+  }
+
+  @Get('expire-reward/:id')
+  @UsePipes(ValidationPipe)
+  @UseGuards(AdminJwtAuthGuard)
+  async expireReward(@Param('id') id: string) {
+    return this.rewardsService.expireReward(id);
+  }
+
+  @Get('pending-rewards')
+  @UsePipes(ValidationPipe)
+  @UseGuards(AdminJwtAuthGuard)
+  async getPendingRewards() {
+    console.log('Pending rewards');
+    return this.rewardsService.getAllPendingRewardsByUsers();
+  }
+
+  @Get('approved-rewards')
+  @UsePipes(ValidationPipe)
+  @UseGuards(AdminJwtAuthGuard)
+  async getApprovedRewards() {
+    return this.rewardsService.getAllApprovedRewardsByUsers();
+  }
+
+  @Post('approve-pending-rewards')
+  @UsePipes(ValidationPipe)
+  @UseGuards(AdminJwtAuthGuard)
+  async approvePendingRewards(
+    @Query('rewardId') rewardId: string,
+    @Query('userId') userId: string,
+  ) {
+    return this.rewardsService.approvePendingReward(rewardId, userId);
   }
 }

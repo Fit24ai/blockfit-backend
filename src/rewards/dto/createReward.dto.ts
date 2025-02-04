@@ -1,12 +1,19 @@
-import { IsNumber, IsString } from 'class-validator';
+import { IsDate, IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateRewardDto {
   @IsString()
+  @IsNotEmpty()
   title: string;
 
   @IsString()
+  @IsNotEmpty()
   description: string;
 
-  @IsNumber()
-  qualifierAmount: number;
+  @IsDate()
+  @IsNotEmpty()
+  startDate: Date;
+
+  @IsDate()
+  @IsNotEmpty()
+  endDate: Date;
 }

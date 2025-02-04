@@ -1776,4 +1776,132 @@ export class StakingService {
       message: `The maximum business is calculated as ${maxBusiness}`,
     };
   }
+
+  async getQualifiedBusiness2(address: string) {
+    let tokensLevel = 0;
+    let levelCount = 0;
+
+    const userTokens = await this.getUserTotalTokenStaked(address);
+
+    if (userTokens.tokens >= 12500) {
+      const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
+      tokensLevel += additionalLevels;
+    }
+
+    if (tokensLevel > 24) {
+      tokensLevel = 24;
+    }
+
+    const directMembers =
+      await this.ethersService.referralContract.getAllRefrees(address);
+
+    if (directMembers.length < 1) {
+      return {
+        success: false,
+        message: 'You need to have at least 1 level opened!',
+        qualifierBusiness: 0,
+      };
+    }
+
+    levelCount = directMembers.length;
+
+    if (levelCount <= tokensLevel) {
+      levelCount = tokensLevel;
+    }
+
+    // console.log({ level: levelCount, directMembers: directMembers.length });
+
+    const rewardStakes = await this.StakingModel.find({
+      walletAddress: address,
+      isReferred: true,
+      // startTime: { $gt: 1732991399 },
+    });
+
+    const levelBusinessMap = new Map<number, number>();
+
+    await Promise.all(
+      rewardStakes.map(async (stake) => {
+        const referredStake = await this.StakingModel.findOne({
+          stakeId: stake.refId,
+          isReferred: false,
+          // startTime: { $gt: 1735689600 },
+        });
+
+        // console.log({ referredStake });
+
+        if (referredStake) {
+          const level = stake.level;
+          const amount = referredStake.amount;
+
+          levelBusinessMap.set(
+            level,
+            (levelBusinessMap.get(level) || 0) + amount,
+          );
+        }
+      }),
+    );
+
+    // console.log(levelBusinessMap);
+
+    const sortedLevelBusiness = Array.from(levelBusinessMap.entries()).sort(
+      (a, b) => b[1] - a[1],
+    );
+
+    const totalBusiness = sortedLevelBusiness.reduce(
+      (sum, [, business]) => sum + business,
+      0,
+    );
+
+    let maxBusiness = 0;
+    let maxLevel = null;
+    let secondMaxLevel = null;
+
+    if (sortedLevelBusiness.length > 0) {
+      maxBusiness += sortedLevelBusiness[0][1] * 0.4;
+      maxLevel = sortedLevelBusiness[0][0];
+    }
+    if (sortedLevelBusiness.length > 1) {
+      maxBusiness += sortedLevelBusiness[1][1] * 0.3;
+      secondMaxLevel = sortedLevelBusiness[1][0];
+    }
+
+    const remainingBusiness = sortedLevelBusiness
+      .slice(2)
+      .reduce((sum, [, business]) => sum + business, 0);
+    maxBusiness += remainingBusiness * 0.3;
+
+    let directMembersStaking = 0;
+
+    await Promise.all(
+      directMembers.map(async (member) => {
+        const memberStakes = await this.StakingModel.find({
+          walletAddress: member,
+          isReferred: false,
+          // startTime: { $gt: 1732991399 },
+        });
+
+        const totalStakes = memberStakes.reduce(
+          (sum, stake) => sum + stake.amount,
+          0,
+        );
+
+        directMembersStaking += totalStakes;
+      }),
+    );
+
+    const qualifierBusiness = Math.max(maxBusiness, directMembersStaking);
+
+    return {
+      success: true,
+      levelCount,
+      totalBusiness,
+      maxBusiness,
+      directMembersStaking,
+      qualifierBusiness,
+      maxLevel,
+      secondMaxLevel,
+      levelBusiness: Object.fromEntries(levelBusinessMap),
+      message: `The qualifier business is calculated as ${qualifierBusiness}`,
+    };
+  }
 }

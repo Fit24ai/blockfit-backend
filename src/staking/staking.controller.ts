@@ -248,6 +248,6 @@ export class StakingController {
 
   @Get('get-qualified-business/:address')
   async getQualifiedBusiness(@Param('address') address: string) {
-    return this.stakingService.getQualifiedBusiness(address);
+    return this.stakingService.getQualifiedBusiness2(address);
   }
 }

@@ -20,10 +20,13 @@ import {
   RewardStatusEnum,
 } from './enum/rewardType.enum';
 import { UserRequest } from 'src/types/user';
+import { S3Service } from 'src/utils/s3Sevice';
+import { UploadImageDto } from './dto/uploadImage.dto';
 
 @Injectable()
 export class RewardsService {
   constructor(
+    private readonly s3Service: S3Service,
     private readonly ethersService: EthersService,
     @InjectModel(User.name) private User: Model<User>,
     @InjectModel(Staking.name) private StakingModel: Model<Staking>,
@@ -155,7 +158,7 @@ export class RewardsService {
     };
   }
 
-  async getQualifiedBusiness2(address: string) {
+  async getQualifiedBusiness2(address: string, startDate?: any, endDate?: any) {
     let tokensLevel = 0;
     let levelCount = 0;
 
@@ -189,11 +192,33 @@ export class RewardsService {
 
     // console.log({ level: levelCount, directMembers: directMembers.length });
 
-    const rewardStakes = await this.StakingModel.find({
-      walletAddress: address,
-      isReferred: true,
-      startTime: { $gt: 1732991399 },
-    });
+    let rewardStakes = [];
+
+    if (startDate && endDate) {
+      const startDateIST = new Date(
+        startDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+      );
+      const endDateIST = new Date(
+        endDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+      );
+      console.log({
+        startDateIST: startDateIST.getTime() / 1000,
+        endDateIST: endDateIST.getTime() / 1000,
+      });
+      rewardStakes = await this.StakingModel.find({
+        walletAddress: address,
+        isReferred: true,
+        startTime: {
+          $gte: startDateIST.getTime() / 1000,
+          $lte: endDateIST.getTime() / 1000,
+        },
+      });
+    } else
+      rewardStakes = await this.StakingModel.find({
+        walletAddress: address,
+        isReferred: true,
+        startTime: { $gte: 1732991400 },
+      });
 
     const levelBusinessMap = new Map<number, number>();
 
@@ -252,11 +277,29 @@ export class RewardsService {
 
     await Promise.all(
       directMembers.map(async (member) => {
-        const memberStakes = await this.StakingModel.find({
-          walletAddress: member,
-          isReferred: false,
-          startTime: { $gt: 1732991399 },
-        });
+        let memberStakes = [];
+        if (startDate && endDate) {
+          const startDateIST = new Date(
+            startDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+          );
+          const endDateIST = new Date(
+            endDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+          );
+          memberStakes = await this.StakingModel.find({
+            walletAddress: member,
+            isReferred: false,
+            startTime: {
+              $gte: startDateIST.getTime() / 1000,
+              $lte: endDateIST.getTime() / 1000,
+            },
+          });
+        } else {
+          memberStakes = await this.StakingModel.find({
+            walletAddress: member,
+            isReferred: false,
+            startTime: { $gte: 1732991400 },
+          });
+        }
 
         const totalStakes = memberStakes.reduce(
           (sum, stake) => sum + stake.amount,
@@ -283,12 +326,40 @@ export class RewardsService {
     };
   }
 
-  async createReward(reward: CreateRewardDto) {
-    const newReward = new this.rewardsModel(reward);
-    return newReward.save();
+  // async createReward(reward: CreateRewardDto, files: UploadImageDto) {
+  //   const image = await this.s3Service.uploadMulterFileToS3(
+  //     files.image[0].buffer,
+  //     `Image/${Date.now()}_${files.image[0].originalname}`,
+  //   );
+  //   const newReward = new this.rewardsModel({ ...reward, imageUrl: image });
+  //   await newReward.save();
+  //   return {
+  //     success: true,
+  //     message: 'Reward created successfully',
+  //   };
+  // }
+
+  async createReward(reward: CreateRewardDto, files: UploadImageDto) {
+    const image = await this.s3Service.uploadMulterFileToS3(
+      files.image[0].buffer,
+      `Image/${Date.now()}_${files.image[0].originalname}`,
+    );
+
+    const newReward = new this.rewardsModel({
+      ...reward,
+      imageUrl: image,
+      startDate: reward.startDate,
+      endDate: reward.endDate,
+    });
+
+    await newReward.save();
+    return {
+      success: true,
+      message: 'Reward created successfully',
+    };
   }
 
-  async claimReward(address : string, rewardId: string) {
+  async claimReward(address: string, rewardId: string) {
     const user = await this.User.findOne({ walletAddress: address });
     const reward = await this.rewardsModel.findById(rewardId);
     if (!reward) {
@@ -337,6 +408,7 @@ export class RewardsService {
     }
 
     const rewards = await this.rewardsModel.find({
+      status: RewardStatusEnum.ACTIVE,
       userClaimedStatus: {
         $not: {
           $elemMatch: { userId: user._id },
@@ -347,11 +419,44 @@ export class RewardsService {
       },
     });
 
-    // rewards.forEach((reward) => {
-    //   console.log({ rewardAmount: reward.qualifierAmount });
-    // });
-
     return rewards;
+  }
+  async getAllUnclaimedRewards2(address: string) {
+    const user = await this.User.findOne({ walletAddress: address });
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const rewards = await this.rewardsModel.find({
+      status: RewardStatusEnum.ACTIVE,
+      userClaimedStatus: {
+        $not: {
+          $elemMatch: { userId: user._id },
+        },
+      },
+    });
+
+    const rewardsWithBusiness = await Promise.all(
+      rewards.map(async (reward) => {
+        const { qualifierBusiness } = await this.getQualifiedBusiness2(
+          user.walletAddress,
+          reward.startDate,
+          reward.endDate,
+        );
+
+        return {
+          ...reward.toObject(),
+          qualifierBusiness,
+        };
+      }),
+    );
+
+    const qualifiedRewards = rewardsWithBusiness.filter(
+      (reward) => reward.qualifierBusiness >= reward.qualifierAmount,
+    );
+
+    return qualifiedRewards;
   }
 
   // async getAllClaimedRewards(userId: ObjectId) {
@@ -396,5 +501,109 @@ export class RewardsService {
     });
 
     return rewards;
+  }
+
+  async getAllActiveRewards() {
+    const rewards = await this.rewardsModel.find({
+      status: RewardStatusEnum.ACTIVE,
+    });
+    return rewards;
+  }
+
+  async getAllExpiredRewards() {
+    const rewards = await this.rewardsModel.find({
+      status: RewardStatusEnum.EXPIRED,
+    });
+    return rewards;
+  }
+
+  async getAllRewards() {
+    const rewards = await this.rewardsModel.find();
+    return rewards;
+  }
+
+  // async getAllPendingRewardsByUsers() {
+  //   const rewards = await this.rewardsModel
+  //     .find({
+  //       userClaimedStatus: {
+  //         $elemMatch: {
+  //           claimStatus: RewardClaimStatusEnum.PENDING,
+  //         },
+  //       },
+  //     })
+  //     .populate('userClaimedStatus.userId');
+  //   return rewards;
+  // }
+
+  async getAllPendingRewardsByUsers() {
+    try {
+      const rewards = await this.rewardsModel
+        .find({
+          status: RewardStatusEnum.ACTIVE,
+          userClaimedStatus: {
+            $elemMatch: {
+              claimStatus: RewardClaimStatusEnum.PENDING,
+            },
+          },
+        })
+        .populate('userClaimedStatus.userId');
+
+      return rewards;
+    } catch (error) {
+      console.error('Error fetching pending rewards:', error);
+      throw new Error('Unable to fetch pending rewards.');
+    }
+  }
+
+  async getAllApprovedRewardsByUsers() {
+    const rewards = await this.rewardsModel
+      .find({
+        userClaimedStatus: {
+          $elemMatch: {
+            claimStatus: RewardClaimStatusEnum.APPROVED,
+          },
+        },
+      })
+      .populate('userClaimedStatus.userId');
+    return rewards;
+  }
+
+  async approvePendingReward(rewardId: string, userId: string) {
+    const reward = await this.rewardsModel.findById(rewardId);
+    if (!reward) {
+      throw new BadRequestException('Reward not found');
+    }
+    const user = await this.User.findById(userId);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    const rewardClaimStatus = reward.userClaimedStatus.find(
+      (status) => status.userId.toString() === user._id.toString(),
+    );
+    if (!rewardClaimStatus) {
+      throw new BadRequestException('Reward not found for the user');
+    }
+    if (rewardClaimStatus.claimStatus !== RewardClaimStatusEnum.PENDING) {
+      throw new BadRequestException('Reward is not pending for approval');
+    }
+    rewardClaimStatus.claimStatus = RewardClaimStatusEnum.APPROVED;
+    await reward.save();
+    return {
+      success: true,
+      message: 'Reward approved successfully',
+    };
+  }
+
+  async expireReward(rewardId: string) {
+    const reward = await this.rewardsModel.findById(rewardId);
+    if (!reward) {
+      throw new BadRequestException('Reward not found');
+    }
+    reward.status = RewardStatusEnum.EXPIRED;
+    await reward.save();
+    return {
+      success: true,
+      message: 'Reward expired successfully',
+    };
   }
 }

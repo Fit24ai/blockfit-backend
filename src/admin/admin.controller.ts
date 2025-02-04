@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { AdminLoginDto } from './dto/adminLogin.dto';
-import { AdminAuthGuard } from './passport/admin.guard';
+import { AdminJwtAuthGuard } from 'src/passport/passport.guard';
 
 @Controller('admin')
 export class AdminController {
@@ -129,21 +129,21 @@ export class AdminController {
     return await this.adminService.getDailyClaimedUsers(
       parsedFromDate,
       parsedToDate,
-      address
+      address,
     );
   }
 
   @Get('/get-user-info/:address')
   getUserInfo(
     @Param('address') address: string,
-    @Query('level') level?: string, 
-    @Query('dateFrom') dateFrom?: string, 
-    @Query('dateTo') dateTo?: string, 
+    @Query('level') level?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
   ) {
     const specificLevel = level ? parseInt(level, 10) : undefined;
 
-    const fromDate = dateFrom ? new Date(dateFrom + 'Z') : undefined; 
-    const toDate = dateTo ? new Date(dateTo + 'Z') : undefined; 
+    const fromDate = dateFrom ? new Date(dateFrom + 'Z') : undefined;
+    const toDate = dateTo ? new Date(dateTo + 'Z') : undefined;
 
     return this.adminService.getUserInfo2(
       address,
@@ -181,7 +181,7 @@ export class AdminController {
   }
 
   @Get('/dashboard')
-  @UseGuards(AdminAuthGuard)
+  @UseGuards(AdminJwtAuthGuard)
   getAdminDashboard() {
     return {
       message: 'Welcome Admin!',

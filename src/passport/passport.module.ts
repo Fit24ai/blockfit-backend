@@ -8,6 +8,6 @@ import { JwtStrategy } from './passport.strategy';
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
   ],
   providers: [JwtStrategy],
-  exports: [MongooseModule]
+  exports: [MongooseModule],
 })
 export class PassportModule {}

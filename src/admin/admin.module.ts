@@ -16,6 +16,7 @@ import {
   StakingTransaction,
   StakingTransactionSchema,
 } from 'src/staking-transaction/schema/stakingTransaction.schema';
+import { PassportModule } from '@nestjs/passport';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import {
     MongooseModule.forFeature([
       { name: ClaimedHistory.name, schema: ClaimedHistorySchema },
     ]),
+    PassportModule.register({ defaultStrategy: 'jwt-admin' }),
   ],
   controllers: [AdminController],
   providers: [AdminService, JwtService, EthersService],

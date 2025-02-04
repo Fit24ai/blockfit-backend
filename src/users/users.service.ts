@@ -91,4 +91,9 @@ export class UsersService {
     );
     return { accessToken };
   }
+
+  async getUserBlockStatus(walletAddress: string) {
+    const user = await this.User.findOne({ walletAddress: walletAddress });
+    return user.blocked;
+  }
 }
