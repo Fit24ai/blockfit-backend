@@ -19,4 +19,9 @@ export class RankRewardsController {
   async getTotalBusinessDetails(@Param('address') address: string) {
     return this.rankRewardsService.getTotalBusinessDetails(address);
   }
+
+  @Get('ranks/:address')
+  async getAllRanksAndUserEligibilities(@Param('address') address: string) {
+    return this.rankRewardsService.getAllRanksAndUserEligibilities(address);
+  }
 }

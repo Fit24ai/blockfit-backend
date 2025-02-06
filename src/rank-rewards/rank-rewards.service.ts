@@ -10,6 +10,7 @@ import { User } from 'src/users/schema/user.schema';
 import { S3Service } from 'src/utils/s3Sevice';
 import { RankRewards } from './entities/rank-reward.entity';
 import { RewardsService } from 'src/rewards/rewards.service';
+import { formatUnits, getAddress } from 'ethers';
 
 @Injectable()
 export class RankRewardsService {
@@ -37,7 +38,12 @@ export class RankRewardsService {
     try {
       const data = await this.rankRewardsModel.updateOne(
         { rank: body.rank },
-        { $set: { rewardAmount: body.rewardAmount } },
+        {
+          $set: {
+            rewardAmount: body.rewardAmount,
+            qualifierAmount: body.qualifierAmount,
+          },
+        },
       );
       return data;
     } catch (error) {
@@ -47,10 +53,330 @@ export class RankRewardsService {
 
   async getTotalBusinessDetails(address: string) {
     try {
-      const data = await this.rewardsService.getQualifiedBusiness2(address);
+      // const data = await this.rewardsService.getQualifiedBusiness2(address);
+      const data = await this.getQualifiedBusinessUsd(address);
       return data;
     } catch (error) {
       throw error;
     }
+  }
+
+  // async getAllRanksAndUserEligibilities(address: string) {
+  //   const { qualifierBusinessUsd } =
+  //     await this.getQualifiedBusinessUsd(address);
+  //   const Ranks = await this.rankRewardsModel.find();
+  // }
+
+  // async getAllRanksAndUserEligibilities(address: string) {
+  //   // Get the user's qualified business USD
+  //   const { qualifierBusinessUsd } =
+  //     await this.getQualifiedBusinessUsd(address);
+
+  //   // Fetch all ranks and sort by qualifierAmount (ascending order)
+  //   const ranks = await this.rankRewardsModel
+  //     .find()
+  //     .sort({ qualifierAmount: 1 });
+
+  //   let currentRankTitle = 'No Rank';
+  //   let currentRankIndex = 0;
+
+  //   // Format ranks and determine the current rank
+  //   const formattedRanks = ranks.map((rank, index) => {
+  //     const isEligible = qualifierBusinessUsd >= rank.qualifierAmount;
+  //     if (isEligible) {
+  //       currentRankTitle = rank.title;
+  //       currentRankIndex = index + 1;
+  //     }
+
+  //     return {
+  //       title: rank.title,
+  //       description: rank.description,
+  //       qualifierAmount: rank.qualifierAmount,
+  //       rewardAmount: rank.rewardAmount,
+  //       progressPercentage: Math.min(
+  //         (qualifierBusinessUsd / rank.qualifierAmount) * 100,
+  //         100,
+  //       ),
+  //       isEligibleForClaim: isEligible,
+  //     };
+  //   });
+
+  //   return {
+  //     ranks: formattedRanks,
+  //     currentRank: { title: currentRankTitle, index: currentRankIndex },
+  //   };
+  // }
+
+  async getAllRanksAndUserEligibilities(address: string) {
+    // Get the user's qualified business USD
+    const user = await this.User.findOne({ walletAddress: address });
+    const userId = user._id.toString();
+    console.log({ userId });
+    const { qualifierBusinessUsd } =
+      await this.getQualifiedBusinessUsd(address);
+
+    // Fetch all ranks and sort by qualifierAmount (ascending order)
+    const ranks = await this.rankRewardsModel
+      .find()
+      .sort({ qualifierAmount: 1 });
+
+    let currentRankTitle = 'No Rank';
+    let currentRankIndex = 0;
+
+    // Format ranks and determine the current rank
+    const formattedRanks = ranks.map((rank, index) => {
+      const isEligible = qualifierBusinessUsd >= rank.qualifierAmount;
+
+      // Find if the user has already claimed this rank
+      const userClaimStatus = rank.userClaimedStatus.find(
+        (entry) => entry.userId.toString() === userId,
+      );
+      const claimStatus = userClaimStatus?.claimStatus || null;
+
+      if (isEligible) {
+        currentRankTitle = rank.title;
+        currentRankIndex = index + 1;
+      }
+
+      return {
+        title: rank.title,
+        description: rank.description,
+        qualifierAmount: rank.qualifierAmount,
+        rewardAmount: rank.rewardAmount,
+        progressPercentage: Math.min(
+          (qualifierBusinessUsd / rank.qualifierAmount) * 100,
+          100,
+        ),
+        isEligibleForClaim: isEligible && !claimStatus, // Only allow claim if not claimed before
+        claimStatus, // "PENDING" or "APPROVED" if already claimed
+      };
+    });
+
+    return {
+      ranks: formattedRanks,
+      currentRank: { title: currentRankTitle, index: currentRankIndex },
+    };
+  }
+
+  async getUserTotalTokenStaked(walletAddress: string) {
+    const fixedAddress = getAddress(walletAddress);
+    const tokens =
+      await this.ethersService.icoContract.userTotalTokenStaked(fixedAddress);
+    return { tokens: Number(formatUnits(tokens, 18)) };
+  }
+
+  async getQualifiedBusinessUsd(
+    address: string,
+    startDate?: any,
+    endDate?: any,
+  ) {
+    let tokensLevel = 0;
+    let levelCount = 0;
+
+    const userTokens = await this.getUserTotalTokenStaked(address);
+
+    if (userTokens.tokens >= 12500) {
+      const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
+      tokensLevel += additionalLevels;
+    }
+
+    if (tokensLevel > 24) {
+      tokensLevel = 24;
+    }
+
+    const directMembers =
+      await this.ethersService.referralContract.getAllRefrees(address);
+
+    if (directMembers.length < 1) {
+      return {
+        success: false,
+        message: 'You need to have at least 1 level opened!',
+        qualifierBusiness: 0,
+      };
+    }
+
+    levelCount = directMembers.length;
+
+    if (levelCount <= tokensLevel) {
+      levelCount = tokensLevel;
+    }
+
+    // console.log({ level: levelCount, directMembers: directMembers.length });
+
+    let rewardStakes = [];
+
+    if (startDate && endDate) {
+      const startDateIST = new Date(
+        startDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+      );
+      const endDateIST = new Date(
+        endDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+      );
+      console.log({
+        startDateIST: startDateIST.getTime() / 1000,
+        endDateIST: endDateIST.getTime() / 1000,
+      });
+      rewardStakes = await this.StakingModel.find({
+        walletAddress: address,
+        isReferred: true,
+        startTime: {
+          $gte: startDateIST.getTime() / 1000,
+          $lte: endDateIST.getTime() / 1000,
+        },
+      });
+    } else
+      rewardStakes = await this.StakingModel.find({
+        walletAddress: address,
+        isReferred: true,
+        startTime: { $gte: 1732991400 },
+      });
+
+    const levelBusinessMap = new Map<number, number>();
+    const levelBusinessUsdMap = new Map<number, number>();
+
+    await Promise.all(
+      rewardStakes.map(async (stake) => {
+        const referredStake = await this.StakingModel.findOne({
+          stakeId: stake.refId,
+          isReferred: false,
+          // startTime: { $gt: 1735689600 },
+        });
+
+        // console.log({ referredStake });
+
+        if (referredStake) {
+          const level = stake.level;
+          const amount = referredStake.amount;
+          const usdAmount = referredStake.usdAmount || 0;
+
+          levelBusinessMap.set(
+            level,
+            (levelBusinessMap.get(level) || 0) + amount,
+          );
+          levelBusinessUsdMap.set(
+            level,
+            (levelBusinessUsdMap.get(level) || 0) + usdAmount,
+          );
+        }
+      }),
+    );
+
+    // console.log(levelBusinessMap);
+
+    const sortedLevelBusiness = Array.from(levelBusinessMap.entries()).sort(
+      (a, b) => b[1] - a[1],
+    );
+    const sortedLevelUsdBusiness = Array.from(
+      levelBusinessUsdMap.entries(),
+    ).sort((a, b) => b[1] - a[1]);
+
+    const totalBusiness = sortedLevelBusiness.reduce(
+      (sum, [, business]) => sum + business,
+      0,
+    );
+    const totalUsdBusiness = sortedLevelUsdBusiness.reduce(
+      (sum, [, business]) => sum + business,
+      0,
+    );
+
+    let maxBusiness = 0;
+    let maxUsdBusiness = 0;
+    let maxLevel = null;
+    let secondMaxLevel = null;
+
+    if (sortedLevelBusiness.length > 0) {
+      maxBusiness += sortedLevelBusiness[0][1] * 0.4;
+      maxLevel = sortedLevelBusiness[0][0];
+    }
+    if (sortedLevelBusiness.length > 1) {
+      maxBusiness += sortedLevelBusiness[1][1] * 0.3;
+      secondMaxLevel = sortedLevelBusiness[1][0];
+    }
+
+    if (sortedLevelUsdBusiness.length > 0) {
+      maxUsdBusiness += sortedLevelUsdBusiness[0][1] * 0.4;
+      maxLevel = sortedLevelUsdBusiness[0][0];
+    }
+    if (sortedLevelUsdBusiness.length > 1) {
+      maxUsdBusiness += sortedLevelUsdBusiness[1][1] * 0.3;
+      secondMaxLevel = sortedLevelUsdBusiness[1][0];
+    }
+
+    const remainingBusiness = sortedLevelBusiness
+      .slice(2)
+      .reduce((sum, [, business]) => sum + business, 0);
+    maxBusiness += remainingBusiness * 0.3;
+
+    const remainingUsdBusiness = sortedLevelUsdBusiness
+      .slice(2)
+      .reduce((sum, [, business]) => sum + business, 0);
+    maxUsdBusiness += remainingUsdBusiness * 0.3;
+
+    let directMembersStaking = 0;
+    let directMembersStakingUsd = 0;
+
+    await Promise.all(
+      directMembers.map(async (member) => {
+        let memberStakes = [];
+        if (startDate && endDate) {
+          const startDateIST = new Date(
+            startDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+          );
+          const endDateIST = new Date(
+            endDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+          );
+          memberStakes = await this.StakingModel.find({
+            walletAddress: member,
+            isReferred: false,
+            startTime: {
+              $gte: startDateIST.getTime() / 1000,
+              $lte: endDateIST.getTime() / 1000,
+            },
+          });
+        } else {
+          memberStakes = await this.StakingModel.find({
+            walletAddress: member,
+            isReferred: false,
+            startTime: { $gte: 1732991400 },
+          });
+        }
+
+        const totalStakes = memberStakes.reduce(
+          (sum, stake) => sum + stake.amount,
+          0,
+        );
+
+        const totalStakesUsd = memberStakes.reduce(
+          (sum, stake) => sum + stake.usdAmount,
+          0,
+        );
+
+        directMembersStaking += totalStakes;
+        directMembersStakingUsd += totalStakesUsd;
+      }),
+    );
+
+    const qualifierBusiness = Math.max(maxBusiness, directMembersStaking);
+    const qualifierBusinessUsd = Math.max(
+      maxUsdBusiness,
+      directMembersStakingUsd,
+    );
+
+    return {
+      success: true,
+      levelCount,
+      totalBusiness,
+      maxBusiness,
+      directMembersStaking,
+      qualifierBusiness,
+      totalUsdBusiness,
+      maxUsdBusiness,
+      directMembersStakingUsd,
+      qualifierBusinessUsd,
+      maxLevel,
+      secondMaxLevel,
+      levelBusiness: Object.fromEntries(levelBusinessMap),
+      message: `The qualifier business is calculated as ${qualifierBusiness}`,
+    };
   }
 }

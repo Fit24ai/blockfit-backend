@@ -94,6 +94,7 @@ export class UsersService {
 
   async getUserBlockStatus(walletAddress: string) {
     const user = await this.User.findOne({ walletAddress: walletAddress });
-    return user.blocked;
+    if (user) return user.blocked;
+    return false;
   }
 }
