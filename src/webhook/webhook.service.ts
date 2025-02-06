@@ -252,6 +252,11 @@ export class WebhookService {
         await this.stakingService.verifyStakingRecord(
           transaction.distributionHash,
           paymentReceived.user,
+          this.BigToNumber(
+            transaction.chain === ChainEnum.BINANCE
+              ? BigInt(paymentReceived.amount)
+              : parseEther(formatUnits(paymentReceived.amount, 6)),
+          ),
         );
         transaction.stakingStatus = StakingStatus.STAKED;
         await transaction.save();
@@ -282,11 +287,13 @@ export class WebhookService {
       distributionStatus: DistributionStatusEnum.DISTRIBUTED,
       stakingStatus: StakingStatus.STAKED,
     });
-    console.log(transaction)
-    const referaltx =await  this.referrlaTransaction.findOne({ transactionHash: tx });
-    console.log(referaltx)
+    console.log(transaction);
+    const referaltx = await this.referrlaTransaction.findOne({
+      transactionHash: tx,
+    });
+    console.log(referaltx);
     if (referaltx) return;
-    if (transaction.chain === "BINANCE") {
+    if (transaction.chain === 'BINANCE') {
       console.log('BINANCE');
       const receipt =
         await this.ethersService.binanceProvider.getTransactionReceipt(tx);

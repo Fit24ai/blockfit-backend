@@ -43,5 +43,6 @@ import { S3Service } from 'src/utils/s3Sevice';
     AdminJwtStrategy,
     S3Service,
   ],
+  exports: [RewardsService],
 })
 export class RewardsModule {}

@@ -93,7 +93,11 @@ export class StakingService {
     };
   }
 
-  async verifyStakingRecord(txHash: string, walletAddress: string) {
+  async verifyStakingRecord(
+    txHash: string,
+    walletAddress: string,
+    usdAmount?: number,
+  ) {
     console.log('verify');
 
     const transaction = await this.StakingModel.findOne({
@@ -199,6 +203,7 @@ export class StakingService {
           receipt.status === 1
             ? TransactionStatusEnum.CONFIRMED
             : TransactionStatusEnum.FAILED,
+        usdAmount: usdAmount ? usdAmount : 0,
       },
       {
         new: true,
