@@ -146,7 +146,7 @@ export class RewardsController {
   }
 
   @Get('rewards')
-  @UseGuards(AdminJwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getAllRewardAndUserDetails(@Request() req: UserRequest) {
     // return this.rewardsService.getAllRewardAndUserDetails(
     //   '0x53bC7cEC2EEc02f1CC467a7c2B9B5FC5D659acff',
