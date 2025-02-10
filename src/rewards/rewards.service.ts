@@ -11,7 +11,10 @@ import { EthersService } from 'src/ethers/ethers.service';
 import { StakingTransaction } from 'src/staking-transaction/schema/stakingTransaction.schema';
 import { ClaimedHistory } from 'src/staking/schema/claimedHistory.schema';
 import { Staking } from 'src/staking/schema/staking.schema';
-import { DistributionStatusEnum } from 'src/types/transaction';
+import {
+  DistributionStatusEnum,
+  TransactionStatusEnum,
+} from 'src/types/transaction';
 import { User } from 'src/users/schema/user.schema';
 import { Rewards } from './entities/reward.entity';
 import { CreateRewardDto } from './dto/createReward.dto';
@@ -382,6 +385,8 @@ export class RewardsService {
     });
     await reward.save();
 
+    console.log('reward claiming');
+
     return {
       success: true,
       message: 'Reward claimed successfully',
@@ -604,6 +609,680 @@ export class RewardsService {
     return {
       success: true,
       message: 'Reward expired successfully',
+    };
+  }
+
+  async getAllRewardAndUserDetails(address: string) {
+    const user = await this.User.findOne({ walletAddress: address });
+    const userId = user._id.toString();
+
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    const rewards = await this.rewardsModel.find({
+      status: RewardStatusEnum.ACTIVE,
+      // userClaimedStatus: {
+      //   $not: {
+      //     $elemMatch: { userId: user._id },
+      //   },
+      // },
+    });
+
+    const rewardDetails = await Promise.all(
+      rewards.map(async (reward) => {
+        const { qualifierBusiness } = await this.getQualifiedBusinessLegs(
+          address,
+          reward.startDate,
+          reward.endDate,
+        );
+
+        const userClaimStatus = reward.userClaimedStatus.find(
+          (entry) => entry.userId.toString() === userId,
+        );
+        const claimStatus = userClaimStatus?.claimStatus || null;
+        const startDateIST = new Date(
+          reward.startDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+        );
+        const endDateIST = new Date(
+          reward.endDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+        );
+
+        const selfStakes = await this.StakingModel.find({
+          walletAddress: address,
+          transactionStatus: TransactionStatusEnum.CONFIRMED,
+          isReferred: false,
+          startTime: {
+            $gte: startDateIST.getTime(),
+            $lte: endDateIST.getTime(),
+          },
+        });
+
+        let usdAmount = 0;
+
+        selfStakes.map((stake) => {
+          usdAmount += stake.usdAmount;
+        });
+
+        let isEligible = false;
+
+        if (reward.selfQualifierAmount) {
+          isEligible =
+            qualifierBusiness >= reward.qualifierAmount ||
+            usdAmount >= reward.selfQualifierAmount;
+        } else {
+          isEligible = qualifierBusiness >= reward.qualifierAmount;
+        }
+
+        return {
+          reward,
+          qualifierBusinessUsd: qualifierBusiness,
+          selfStakesUsd: usdAmount,
+          isEligibleForClaim: isEligible && !claimStatus,
+          progressPercentage: Math.min(
+            (qualifierBusiness / reward.qualifierAmount) * 100,
+            100,
+          ),
+          claimStatus,
+        };
+      }),
+    );
+
+    return { rewards: rewardDetails };
+  }
+
+  async getQualifiedBusinessUsd(
+    address: string,
+    startDate?: any,
+    endDate?: any,
+  ) {
+    let tokensLevel = 0;
+    let levelCount = 0;
+
+    const userTokens = await this.getUserTotalTokenStaked(address);
+
+    if (userTokens.tokens >= 12500) {
+      const additionalLevels = Math.floor(userTokens.tokens / 12500) * 6;
+      tokensLevel += additionalLevels;
+    }
+
+    if (tokensLevel > 24) {
+      tokensLevel = 24;
+    }
+
+    const directMembers =
+      await this.ethersService.referralContract.getAllRefrees(address);
+
+    if (directMembers.length < 1) {
+      return {
+        success: false,
+        message: 'You need to have at least 1 level opened!',
+        qualifierBusiness: 0,
+      };
+    }
+
+    levelCount = directMembers.length;
+
+    if (levelCount <= tokensLevel) {
+      levelCount = tokensLevel;
+    }
+
+    // console.log({ level: levelCount, directMembers: directMembers.length });
+
+    let rewardStakes = [];
+
+    if (startDate && endDate) {
+      const startDateIST = new Date(
+        startDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+      );
+      const endDateIST = new Date(
+        endDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+      );
+      console.log({
+        startDateIST: startDateIST.getTime() / 1000,
+        endDateIST: endDateIST.getTime() / 1000,
+      });
+      rewardStakes = await this.StakingModel.find({
+        walletAddress: address,
+        isReferred: true,
+        startTime: {
+          $gte: startDateIST.getTime() / 1000,
+          $lte: endDateIST.getTime() / 1000,
+        },
+      });
+    } else
+      rewardStakes = await this.StakingModel.find({
+        walletAddress: address,
+        isReferred: true,
+        startTime: { $gte: 1732991400 },
+      });
+
+    const levelBusinessMap = new Map<number, number>();
+    const levelBusinessUsdMap = new Map<number, number>();
+
+    await Promise.all(
+      rewardStakes.map(async (stake) => {
+        const referredStake = await this.StakingModel.findOne({
+          stakeId: stake.refId,
+          isReferred: false,
+          // startTime: { $gt: 1735689600 },
+        });
+
+        // console.log({ referredStake });
+
+        if (referredStake) {
+          const level = stake.level;
+          const amount = referredStake.amount;
+          const usdAmount = referredStake.usdAmount || 0;
+
+          levelBusinessMap.set(
+            level,
+            (levelBusinessMap.get(level) || 0) + amount,
+          );
+          levelBusinessUsdMap.set(
+            level,
+            (levelBusinessUsdMap.get(level) || 0) + usdAmount,
+          );
+        }
+      }),
+    );
+
+    // console.log(levelBusinessMap);
+
+    const sortedLevelBusiness = Array.from(levelBusinessMap.entries()).sort(
+      (a, b) => b[1] - a[1],
+    );
+    const sortedLevelUsdBusiness = Array.from(
+      levelBusinessUsdMap.entries(),
+    ).sort((a, b) => b[1] - a[1]);
+
+    const totalBusiness = sortedLevelBusiness.reduce(
+      (sum, [, business]) => sum + business,
+      0,
+    );
+    const totalUsdBusiness = sortedLevelUsdBusiness.reduce(
+      (sum, [, business]) => sum + business,
+      0,
+    );
+
+    let maxBusiness = 0;
+    let maxUsdBusiness = 0;
+    let maxLevel = null;
+    let secondMaxLevel = null;
+
+    if (sortedLevelBusiness.length > 0) {
+      maxBusiness += sortedLevelBusiness[0][1] * 0.4;
+      maxLevel = sortedLevelBusiness[0][0];
+    }
+    if (sortedLevelBusiness.length > 1) {
+      maxBusiness += sortedLevelBusiness[1][1] * 0.3;
+      secondMaxLevel = sortedLevelBusiness[1][0];
+    }
+
+    if (sortedLevelUsdBusiness.length > 0) {
+      maxUsdBusiness += sortedLevelUsdBusiness[0][1] * 0.4;
+      maxLevel = sortedLevelUsdBusiness[0][0];
+    }
+    if (sortedLevelUsdBusiness.length > 1) {
+      maxUsdBusiness += sortedLevelUsdBusiness[1][1] * 0.3;
+      secondMaxLevel = sortedLevelUsdBusiness[1][0];
+    }
+
+    const remainingBusiness = sortedLevelBusiness
+      .slice(2)
+      .reduce((sum, [, business]) => sum + business, 0);
+    maxBusiness += remainingBusiness * 0.3;
+
+    const remainingUsdBusiness = sortedLevelUsdBusiness
+      .slice(2)
+      .reduce((sum, [, business]) => sum + business, 0);
+    maxUsdBusiness += remainingUsdBusiness * 0.3;
+
+    let directMembersStaking = 0;
+    let directMembersStakingUsd = 0;
+
+    await Promise.all(
+      directMembers.map(async (member) => {
+        let memberStakes = [];
+        if (startDate && endDate) {
+          const startDateIST = new Date(
+            startDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+          );
+          const endDateIST = new Date(
+            endDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+          );
+          memberStakes = await this.StakingModel.find({
+            walletAddress: member,
+            isReferred: false,
+            startTime: {
+              $gte: startDateIST.getTime() / 1000,
+              $lte: endDateIST.getTime() / 1000,
+            },
+          });
+        } else {
+          memberStakes = await this.StakingModel.find({
+            walletAddress: member,
+            isReferred: false,
+            startTime: { $gte: 1732991400 },
+          });
+        }
+
+        const totalStakes = memberStakes.reduce(
+          (sum, stake) => sum + stake.amount,
+          0,
+        );
+
+        const totalStakesUsd = memberStakes.reduce(
+          (sum, stake) => sum + stake.usdAmount,
+          0,
+        );
+
+        directMembersStaking += totalStakes;
+        directMembersStakingUsd += totalStakesUsd;
+      }),
+    );
+
+    const qualifierBusiness = Math.max(maxBusiness, directMembersStaking);
+    const qualifierBusinessUsd = Math.max(
+      maxUsdBusiness,
+      directMembersStakingUsd,
+    );
+
+    return {
+      success: true,
+      levelCount,
+      totalBusiness,
+      maxBusiness,
+      directMembersStaking,
+      qualifierBusiness,
+      totalUsdBusiness,
+      maxUsdBusiness,
+      directMembersStakingUsd,
+      qualifierBusinessUsd,
+      maxLevel,
+      secondMaxLevel,
+      levelBusiness: Object.fromEntries(levelBusinessMap),
+      message: `The qualifier business is calculated as ${qualifierBusiness}`,
+    };
+  }
+
+  // async getQualifiedBusinessLegs(
+  //   address: string,
+  //   startDate?: any,
+  //   endDate?: any,
+  // ) {
+  //   let totalUsdAmount = 0;
+  //   let directMembersStaking = 0;
+
+  //   const refrees =
+  //     await this.ethersService.referralContract.getAllRefrees(address);
+  //   console.log(refrees.length);
+
+  //   if (refrees.length === 0) {
+  //     return {
+  //       success: false,
+  //       message: 'Not qualified!',
+  //       totalUsdBusiness: 0,
+  //       qualifierBusiness: 0,
+  //     };
+  //   }
+
+  //   let refreesStakes = [];
+
+  //   if (startDate && endDate) {
+  //     const startDateIST = new Date(
+  //       startDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+  //     );
+  //     const endDateIST = new Date(
+  //       endDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+  //     );
+  //     refreesStakes = await this.StakingModel.find({
+  //       walletAddress: { $in: refrees },
+  //       isReferred: false,
+  //       startTime: {
+  //         $gte: startDateIST.getTime() / 1000,
+  //         $lte: endDateIST.getTime() / 1000,
+  //       },
+  //     });
+  //   } else
+  //     refreesStakes = await this.StakingModel.find({
+  //       walletAddress: { $in: refrees },
+  //       isReferred: false,
+  //       // startTime: { $gte: 1732991400 },
+  //     });
+
+  //   directMembersStaking = refreesStakes.reduce(
+  //     (sum, stake) => sum + stake.usdAmount,
+  //     0,
+  //   );
+
+  //   console.log({ directMembersStaking });
+
+  //   if (refrees.length <= 2) {
+  //     return {
+  //       success: true,
+  //       qualifierType: `LEGSTAKES`,
+  //       qualifierBusiness: directMembersStaking,
+  //       totalUsdBusiness: directMembersStaking,
+  //     };
+  //   }
+
+  //   const refereeBusiness = await Promise.all(
+  //     refrees.map(async (referee) => {
+  //       const { USDAmount } =
+  //         await this.getTotalBusinessWithSelfStakes(referee);
+  //       totalUsdAmount += USDAmount;
+  //       return { referee, USDAmount };
+  //     }),
+  //   );
+
+  //   refereeBusiness.sort((a, b) => b.USDAmount - a.USDAmount);
+  //   console.log(refrees.length);
+
+  //   let remainingAmount = totalUsdAmount;
+  //   let allocated40 = 0,
+  //     allocated30_1 = 0,
+  //     allocated30_2 = 0;
+
+  //   const [maxLeg, secondMaxLeg, ...thirdLegs] = refereeBusiness;
+
+  //   allocated40 = Math.min(maxLeg.USDAmount, totalUsdAmount * 0.4);
+  //   remainingAmount -= maxLeg.USDAmount;
+
+  //   allocated30_1 = Math.min(secondMaxLeg.USDAmount, totalUsdAmount * 0.3);
+  //   remainingAmount -= secondMaxLeg.USDAmount;
+
+  //   allocated30_2 = Math.min(remainingAmount, totalUsdAmount * 0.3);
+
+  //   let totalQualifierBusiness = allocated40 + allocated30_1 + allocated30_2;
+
+  //   const qualifierBusiness = Math.max(
+  //     totalQualifierBusiness,
+  //     directMembersStaking,
+  //   );
+
+  //   return {
+  //     success: true,
+  //     qualifierType: `${totalQualifierBusiness > directMembersStaking ? 'FORTYTHIRTY' : 'LEGSTAKES'}`,
+  //     totalUsdBusiness: totalUsdAmount,
+  //     MaxBusinessLeg: maxLeg.referee,
+  //     maxUsdAmount: maxLeg.USDAmount,
+  //     allocated40,
+  //     SecondMaxBusinessLeg: secondMaxLeg.referee,
+  //     secondMaxUsdAmount: secondMaxLeg.USDAmount,
+  //     allocated30_1,
+  //     allocated30_2,
+  //     qualifierBusiness,
+  //   };
+  // }
+
+  async getQualifiedBusinessLegs(
+    address: string,
+    startDate?: any,
+    endDate?: any,
+  ) {
+    let totalUsdAmount = 0;
+    let directMembersStaking = 0;
+
+    // Fetch all referees (direct members)
+    const referees =
+      await this.ethersService.referralContract.getAllRefrees(address);
+    console.log('Total referees:', referees.length);
+
+    if (referees.length === 0) {
+      return {
+        success: false,
+        message: 'Not qualified!',
+        totalUsdBusiness: 0,
+        qualifierBusiness: 0,
+        refereeBusiness: [],
+      };
+    }
+
+    let refereeStakes = [];
+
+    // Convert dates to IST (Indian Standard Time) if provided
+    if (startDate && endDate) {
+      const startDateIST = new Date(
+        startDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+      );
+      const endDateIST = new Date(
+        endDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+      );
+      refereeStakes = await this.StakingModel.find({
+        walletAddress: { $in: referees },
+        isReferred: false,
+        startTime: {
+          $gte: startDateIST.getTime() / 1000,
+          $lte: endDateIST.getTime() / 1000,
+        },
+      });
+    } else {
+      refereeStakes = await this.StakingModel.find({
+        walletAddress: { $in: referees },
+        isReferred: false,
+      });
+    }
+
+    // Sum up the USD amounts from direct members' stakes
+    directMembersStaking = refereeStakes.reduce(
+      (sum, stake) => sum + stake.usdAmount,
+      0,
+    );
+    console.log({ directMembersStaking });
+
+    // If there are 2 or fewer referees, qualification is based on their stakes
+    if (referees.length <= 2) {
+      return {
+        success: true,
+        qualifierType: 'LEGSTAKES',
+        qualifierBusiness: directMembersStaking,
+        totalUsdBusiness: directMembersStaking,
+        refereeBusiness: refereeStakes.map((stake) => ({
+          referee: stake.walletAddress,
+          USDAmount: stake.usdAmount,
+        })),
+      };
+    }
+
+    console.log("ypppp")
+
+    // Calculate total business including self-stakes
+    const refereeBusiness = await Promise.all(
+      referees.map(async (referee) => {
+        const { USDAmount } =
+          await this.getTotalBusinessWithSelfStakes(referee);
+        totalUsdAmount += USDAmount;
+        return { referee, USDAmount };
+      }),
+    );
+
+    // Sort referees by their business amount in descending order
+    refereeBusiness.sort((a, b) => b.USDAmount - a.USDAmount);
+    console.log('Sorted referees:', refereeBusiness.length);
+
+    let remainingAmount = totalUsdAmount;
+    let allocated40 = 0,
+      allocated30_1 = 0,
+      allocated30_2 = 0;
+
+    // Extract the top 2 business legs
+    const [maxLeg, secondMaxLeg, ...otherLegs] = refereeBusiness;
+
+    // Allocate 40% to the highest business leg
+    allocated40 = Math.min(maxLeg.USDAmount, totalUsdAmount * 0.4);
+    remainingAmount -= maxLeg.USDAmount;
+
+    // Allocate 30% to the second highest business leg
+    allocated30_1 = Math.min(secondMaxLeg.USDAmount, totalUsdAmount * 0.3);
+    remainingAmount -= secondMaxLeg.USDAmount;
+
+    // Allocate the remaining amount to the rest of the members, capped at 30%
+    allocated30_2 = Math.min(remainingAmount, totalUsdAmount * 0.3);
+
+    // Sum the remaining business from other legs
+    const restOfMembersBusiness = otherLegs.reduce(
+      (sum, leg) => sum + leg.USDAmount,
+      0,
+    );
+
+    // Determine the total qualifier business
+    const totalQualifierBusiness = allocated40 + allocated30_1 + allocated30_2;
+    const qualifierBusiness = Math.max(
+      totalQualifierBusiness,
+      directMembersStaking,
+    );
+
+    return {
+      success: true,
+      qualifierType:
+        totalQualifierBusiness > directMembersStaking
+          ? 'FORTYTHIRTY'
+          : 'LEGSTAKES',
+      totalUsdBusiness: totalUsdAmount,
+      qualifierBusiness,
+      MaxBusinessLeg: {
+        referee: maxLeg.referee,
+        usdAmount: maxLeg.USDAmount,
+        allocated40,
+      },
+      SecondMaxBusinessLeg: {
+        referee: secondMaxLeg.referee,
+        usdAmount: secondMaxLeg.USDAmount,
+        allocated30_1,
+      },
+      restOfMembers: {
+        totalUsdAmount: restOfMembersBusiness,
+        allocated30_2,
+      },
+      directMembersStaking,
+      refereeBusiness, // Return full breakdown for frontend if needed
+    };
+  }
+
+  async getTotalBusinessWithSelfStakes(
+    address: string,
+    startDate?: any,
+    endDate?: any,
+  ) {
+    let selfStakes = [];
+    let referredStakes = [];
+
+    if (startDate && endDate) {
+      const startDateIST = new Date(
+        startDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+      );
+      const endDateIST = new Date(
+        endDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+      );
+
+      selfStakes = await this.StakingModel.find({
+        walletAddress: address,
+        transactionStatus: TransactionStatusEnum.CONFIRMED,
+        isReferred: false,
+        startTime: { $gte: startDateIST.getTime(), $lte: endDateIST.getTime() },
+      });
+
+      referredStakes = await this.StakingModel.find({
+        walletAddress: address,
+        transactionStatus: TransactionStatusEnum.CONFIRMED,
+        isReferred: true,
+        startTime: { $gte: startDateIST.getTime(), $lte: endDateIST.getTime() },
+      });
+    } else {
+      [selfStakes, referredStakes] = await Promise.all([
+        this.StakingModel.find({
+          walletAddress: address,
+          transactionStatus: TransactionStatusEnum.CONFIRMED,
+          isReferred: false,
+          // startTime: { $gte: 1732991400 },
+        }),
+        this.StakingModel.find({
+          walletAddress: address,
+          transactionStatus: TransactionStatusEnum.CONFIRMED,
+          isReferred: true,
+          // startTime: { $gte: 1732991400 },
+        }),
+      ]);
+    }
+
+    // Calculate total self-stake amount and USD amount
+    const { stakeAmount, stakeAmountInUSD } = selfStakes.reduce(
+      (acc, stake) => {
+        acc.stakeAmount += stake.amount;
+        acc.stakeAmountInUSD += stake.usdAmount;
+        return acc;
+      },
+      { stakeAmount: 0, stakeAmountInUSD: 0 },
+    );
+
+    // Fetch and calculate referred stakes in parallel using map
+    // const referredStakeResults = await Promise.all(
+    //   referredStakes.map((stake) =>
+    //     this.StakingModel.findOne({
+    //       transactionStatus: TransactionStatusEnum.CONFIRMED,
+    //       stakeId: stake.refId,
+    //       isReferred: false,
+    //     }),
+    //   ),
+    // );
+
+    const referredStakeResults = await Promise.all(
+      referredStakes.map((stake) => {
+        const query: any = {
+          transactionStatus: TransactionStatusEnum.CONFIRMED,
+          stakeId: stake.refId,
+          isReferred: false,
+        };
+
+        if (startDate && endDate) {
+          const startDateIST = new Date(
+            startDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+          );
+          const endDateIST = new Date(
+            endDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+          );
+          query.startTime = {
+            $gte: startDateIST.getTime(),
+            $lte: endDateIST.getTime(),
+          };
+        } else {
+          // query.startTime = { $gte: 1732991400 };
+        }
+
+        return this.StakingModel.findOne(query);
+      }),
+    );
+
+    // Filter out null values (if any referred stake doesn't exist)
+    const validReferredStakes = referredStakeResults.filter(Boolean);
+
+    const { referredStakeAmount, referredStakeAmopuntInUsd } =
+      validReferredStakes.reduce(
+        (acc, stake) => {
+          acc.referredStakeAmount += stake.amount;
+          acc.referredStakeAmopuntInUsd += stake.usdAmount;
+          return acc;
+        },
+        { referredStakeAmount: 0, referredStakeAmopuntInUsd: 0 },
+      );
+
+    const totalFit24Amount = stakeAmount + referredStakeAmount;
+    const totalUSDAmount = stakeAmountInUSD + referredStakeAmopuntInUsd;
+
+    console.log({
+      address,
+      stakeAmount,
+      referredStakeAmount,
+      stakeAmountInUSD,
+      referredStakeAmopuntInUsd,
+      Fit24Amount: totalFit24Amount,
+      USDAmount: totalUSDAmount,
+    });
+
+    return {
+      Fit24Amount: totalFit24Amount,
+      USDAmount: totalUSDAmount,
     };
   }
 }

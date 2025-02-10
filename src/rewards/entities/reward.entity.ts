@@ -28,7 +28,10 @@ export class Rewards extends Document {
   @Prop({ type: Number, required: true, default: 10000 })
   qualifierAmount: number;
 
-  @Prop({ type: Date, required: true }) 
+  @Prop({ type: Number, nullable: true })
+  selfQualifierAmount: number;
+
+  @Prop({ type: Date, required: true })
   startDate: Date;
 
   @Prop({ type: Date, required: true })

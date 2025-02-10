@@ -18,7 +18,6 @@ async function bootstrap() {
         'https://fit24-admin.vercel.app',
         'http://localhost:3000',
         'http://192.168.1.2:3000',
-        "http://localhost:3001"
       ],
     },
   });

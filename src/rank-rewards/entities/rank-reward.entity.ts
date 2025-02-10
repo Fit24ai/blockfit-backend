@@ -17,6 +17,18 @@ export class RankRewards extends Document {
   @Prop({ required: true })
   description: string;
 
+  @Prop({ nullable: true, default: null })
+  salaryText: string;
+
+  @Prop({ nullable: true, default: null })
+  rewardText: string;
+
+  @Prop({ nullable: true, default: null })
+  qualifierText: string;
+
+  @Prop({ nullable: true, type: [String] })
+  uniqueFeatures: string[];
+
   @Prop({ type: Number, required: true, default: 10000 })
   qualifierAmount: number;
 

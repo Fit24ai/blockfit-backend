@@ -38,28 +38,38 @@ export class RewardsController {
     return this.rewardsService.getQualifiedBusiness2(address);
   }
 
+  @Get('qualified-business-legs')
+  // @UseGuards(JwtAuthGuard)
+  async getQualifiedBusinessLegs() {
+    console.log('legs');
+    // return this.rewardsService.getQualifiedBusiness(req.user.walletAddress);
+    return this.rewardsService.getQualifiedBusinessLegs(
+      '0x53bC7cEC2EEc02f1CC467a7c2B9B5FC5D659acff',
+    );
+    // return this.rewardsService.getQualifiedBusinessLegs(
+    //   '0xcba3562774e554366a6919710a5371ED392fE5D9',
+    // );
+  }
+
   @Post('create')
   @UseGuards(AdminJwtAuthGuard)
-  @UseInterceptors(
-    FileFieldsInterceptor([
-      { name: 'image', maxCount: 1 },
-    ]),
-  )
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'image', maxCount: 1 }]))
   async create(
     @UploadedFiles()
     files: UploadImageDto,
-    @Body() body: CreateRewardDto) {
+    @Body() body: CreateRewardDto,
+  ) {
     return this.rewardsService.createReward(body, files);
   }
 
   @Get('claim-reward/:id')
   @UseGuards(JwtAuthGuard)
   async claimReward(@Request() req: UserRequest, @Param('id') id: string) {
-    // return this.rewardsService.claimReward(req.user._id, id);
-    return this.rewardsService.claimReward(
-      '0x8725A3dbbc7b1bc74947B34922eB1b82F0aAb2C7',
-      id,
-    );
+    return this.rewardsService.claimReward(req.user.walletAddress, id);
+    // return this.rewardsService.claimReward(
+    //   '0x53bC7cEC2EEc02f1CC467a7c2B9B5FC5D659acff',
+    //   id,
+    // );
   }
 
   @Get('unclaimed-rewards')
@@ -133,5 +143,17 @@ export class RewardsController {
     @Query('userId') userId: string,
   ) {
     return this.rewardsService.approvePendingReward(rewardId, userId);
+  }
+
+  @Get('rewards')
+  @UseGuards(AdminJwtAuthGuard)
+  async getAllRewardAndUserDetails(@Request() req: UserRequest) {
+    // return this.rewardsService.getAllRewardAndUserDetails(
+    //   '0x53bC7cEC2EEc02f1CC467a7c2B9B5FC5D659acff',
+    // );
+
+    return this.rewardsService.getAllRewardAndUserDetails(
+      req.user.walletAddress,
+    );
   }
 }
