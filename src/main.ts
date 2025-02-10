@@ -16,6 +16,7 @@ async function bootstrap() {
       origin: [
         'https://fit24.expert',
         'https://fit24-admin.vercel.app',
+        'https://fit24-buy-token.vercel.app',
         'http://localhost:3000',
         'http://192.168.1.2:3000',
       ],
