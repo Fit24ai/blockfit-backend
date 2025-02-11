@@ -1061,6 +1061,7 @@ export class RewardsService {
       refereeStakes = await this.StakingModel.find({
         walletAddress: { $in: referees },
         isReferred: false,
+        startTime: { $gte: 1732991400 },
       });
     }
 
@@ -1195,13 +1196,13 @@ export class RewardsService {
           walletAddress: address,
           transactionStatus: TransactionStatusEnum.CONFIRMED,
           isReferred: false,
-          // startTime: { $gte: 1732991400 },
+          startTime: { $gte: 1732991400 },
         }),
         this.StakingModel.find({
           walletAddress: address,
           transactionStatus: TransactionStatusEnum.CONFIRMED,
           isReferred: true,
-          // startTime: { $gte: 1732991400 },
+          startTime: { $gte: 1732991400 },
         }),
       ]);
     }
@@ -1247,7 +1248,7 @@ export class RewardsService {
             $lte: endDateIST.getTime(),
           };
         } else {
-          // query.startTime = { $gte: 1732991400 };
+          query.startTime = { $gte: 1732991400 };
         }
 
         return this.StakingModel.findOne(query);

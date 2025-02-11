@@ -62,16 +62,6 @@ export class RewardsController {
     return this.rewardsService.createReward(body, files);
   }
 
-  @Get('claim-reward/:id')
-  @UseGuards(JwtAuthGuard)
-  async claimReward(@Request() req: UserRequest, @Param('id') id: string) {
-    return this.rewardsService.claimReward(req.user.walletAddress, id);
-    // return this.rewardsService.claimReward(
-    //   '0x53bC7cEC2EEc02f1CC467a7c2B9B5FC5D659acff',
-    //   id,
-    // );
-  }
-
   @Get('unclaimed-rewards')
   @UseGuards(JwtAuthGuard)
   async getUnclaimedRewards(@Request() req: UserRequest) {
@@ -155,5 +145,15 @@ export class RewardsController {
     return this.rewardsService.getAllRewardAndUserDetails(
       req.user.walletAddress,
     );
+  }
+
+  @Get('claim-reward/:id')
+  @UseGuards(JwtAuthGuard)
+  async claimReward(@Request() req: UserRequest, @Param('id') id: string) {
+    return this.rewardsService.claimReward(req.user.walletAddress, id);
+    // return this.rewardsService.claimReward(
+    //   '0x53bC7cEC2EEc02f1CC467a7c2B9B5FC5D659acff',
+    //   id,
+    // );
   }
 }
