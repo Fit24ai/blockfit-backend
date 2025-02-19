@@ -144,6 +144,7 @@ export class AdminController {
 
     const fromDate = dateFrom ? new Date(dateFrom + 'Z') : undefined;
     const toDate = dateTo ? new Date(dateTo + 'Z') : undefined;
+    console.log(fromDate, toDate);
 
     return this.adminService.getUserInfo2(
       address,

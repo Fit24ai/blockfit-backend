@@ -829,110 +829,262 @@ export class RankRewardsService {
     };
   }
 
+  // async getAllRanksAndUserEligibilities(address: string) {
+  //   const user = await this.User.findOne({ walletAddress: address });
+  //   const userId = user._id.toString();
+  //   console.log({ userId });
+  //   const {
+  //     qualifierBusiness,
+  //     totalUsdBusiness,
+  //     qualifierType,
+  //     refereeBusiness,
+  //     MaxBusinessLeg,
+  //     SecondMaxBusinessLeg,
+  //     restOfMembers,
+  //   } = await this.rewardsService.getQualifiedBusinessLegs(address);
+
+  //   const ranks = await this.rankRewardsModel
+  //     .find()
+  //     .sort({ qualifierAmount: 1 });
+
+  //   let currentRankTitle = 'No Rank';
+  //   let currentRankIndex = 0;
+  //   let remainingBusiness = qualifierBusiness;
+
+  //   const formattedRanks = ranks.map((rank, index) => {
+  //     const previousQualifierAmount =
+  //       index === 0 ? 0 : ranks[index - 1].qualifierAmount;
+  //     const eligibilityThreshold =
+  //       rank.qualifierAmount - previousQualifierAmount;
+
+  //     // Determine how much of the remaining business applies to this rank
+  //     const applicableBusiness = Math.max(
+  //       0,
+  //       Math.min(remainingBusiness, eligibilityThreshold),
+  //     );
+
+  //     // Calculate progress percentage
+  //     const progressPercentage =
+  //       (applicableBusiness / eligibilityThreshold) * 100;
+
+  //     // Check if user is eligible
+  //     const isEligible = remainingBusiness >= eligibilityThreshold;
+
+  //     const userClaimStatus = rank.userClaimedStatus.find(
+  //       (entry) => entry.userId.toString() === userId,
+  //     );
+  //     const claimStatus = userClaimStatus?.claimStatus || null;
+
+  //     if (isEligible) {
+  //       currentRankTitle = rank.title;
+  //       currentRankIndex = index + 1;
+  //     }
+
+  //     // Deduct used business for next rank calculation
+  //     remainingBusiness -= applicableBusiness;
+
+  //     console.log({ progressPercentage });
+
+  //     return {
+  //       rank,
+  //       progressPercentage,
+  //       isEligibleForClaim: isEligible && !claimStatus,
+  //       claimStatus,
+  //     };
+  //   });
+
+  //   return {
+  //     ranks: formattedRanks,
+  //     currentRank: {
+  //       title: currentRankTitle,
+  //       index: currentRankIndex,
+  //       qualifierBusinessUsd: qualifierBusiness,
+  //       totalUsdBusiness,
+  //     },
+  //     breakdown: {
+  //       qualifierType,
+  //       refereeBusiness,
+  //       MaxBusinessLeg,
+  //       SecondMaxBusinessLeg,
+  //       restOfMembers,
+  //     },
+  //   };
+  // }
+
   async getAllRanksAndUserEligibilities(address: string) {
     const user = await this.User.findOne({ walletAddress: address });
     const userId = user._id.toString();
-    console.log({ userId });
-    const {
-      qualifierBusiness,
-      totalUsdBusiness,
-      qualifierType,
-      refereeBusiness,
-      MaxBusinessLeg,
-      SecondMaxBusinessLeg,
-      restOfMembers,
-    } = await this.rewardsService.getQualifiedBusinessLegs(address);
 
-    const ranks = await this.rankRewardsModel
-      .find()
-      .sort({ qualifierAmount: 1 });
+    const ranks = await this.rankRewardsModel.find().sort({ rank: 1 });
 
-    let currentRankTitle = 'No Rank';
-    let currentRankIndex = 0;
-    let remainingBusiness = qualifierBusiness;
+    const rankBreakdowns = await Promise.all(
+      ranks.map((rank) =>
+        this.rewardsService.getQualifiedBusinessLegs2(
+          address,
+          rank.qualifierAmount,
+          undefined,
+          undefined,
+        ),
+      ),
+    );
 
-    // const formattedRanks = ranks.map((rank, index) => {
-
-    //   const isEligible = qualifierBusiness >= rank.qualifierAmount;
-
-    //   const userClaimStatus = rank.userClaimedStatus.find(
-    //     (entry) => entry.userId.toString() === userId,
-    //   );
-    //   const claimStatus = userClaimStatus?.claimStatus || null;
-
-    //   if (isEligible) {
-    //     currentRankTitle = rank.title;
-    //     currentRankIndex = index + 1;
-    //   }
-
-    //   return {
-    //     rank,
-    //     progressPercentage: Math.min(
-    //       (qualifierBusiness / rank.qualifierAmount) * 100,
-    //       100,
-    //     ),
-    //     isEligibleForClaim: isEligible && !claimStatus,
-    //     claimStatus,
-    //   };
-    // });
+    let currentRankIndex = -1;
+    ranks.forEach((rank, index) => {
+      const breakdown = rankBreakdowns[index];
+      if (breakdown.qualifierBusiness >= rank.qualifierAmount) {
+        currentRankIndex = index;
+      }
+    });
 
     const formattedRanks = ranks.map((rank, index) => {
-      const previousQualifierAmount =
-        index === 0 ? 0 : ranks[index - 1].qualifierAmount;
-      const eligibilityThreshold =
-        rank.qualifierAmount - previousQualifierAmount;
-
-      // Determine how much of the remaining business applies to this rank
-      const applicableBusiness = Math.max(
-        0,
-        Math.min(remainingBusiness, eligibilityThreshold),
-      );
-
-      // Calculate progress percentage
+      const breakdown = rankBreakdowns[index];
       const progressPercentage =
-        (applicableBusiness / eligibilityThreshold) * 100;
-
-      // Check if user is eligible
-      const isEligible = remainingBusiness >= eligibilityThreshold;
-
+        index <= currentRankIndex + 1
+          ? Math.min(
+              (breakdown.qualifierBusiness / rank.qualifierAmount) * 100,
+              100,
+            )
+          : 0;
       const userClaimStatus = rank.userClaimedStatus.find(
         (entry) => entry.userId.toString() === userId,
       );
       const claimStatus = userClaimStatus?.claimStatus || null;
-
-      if (isEligible) {
-        currentRankTitle = rank.title;
-        currentRankIndex = index + 1;
-      }
-
-      // Deduct used business for next rank calculation
-      remainingBusiness -= applicableBusiness;
-
-      console.log({ progressPercentage });
-
       return {
         rank,
         progressPercentage,
-        isEligibleForClaim: isEligible && !claimStatus,
+        isEligibleForClaim:
+          breakdown.qualifierBusiness >= rank.qualifierAmount && !claimStatus,
         claimStatus,
+        breakdown,
       };
     });
 
+    const currentRank = currentRankIndex >= 0 ? ranks[currentRankIndex] : null;
+    const currentRankBreakdown = rankBreakdowns[currentRankIndex + 1];
+    console.log(currentRankIndex + 1);
+    console.log({currentRankBreakdown})
+
     return {
       ranks: formattedRanks,
-      currentRank: {
-        title: currentRankTitle,
-        index: currentRankIndex,
-        qualifierBusinessUsd: qualifierBusiness,
-        totalUsdBusiness,
-      },
-      breakdown: {
-        qualifierType,
-        refereeBusiness,
-        MaxBusinessLeg,
-        SecondMaxBusinessLeg,
-        restOfMembers,
-      },
+      currentRank: currentRank
+        ? {
+            title: currentRank.title,
+            index: currentRankIndex + 1,
+            qualifierAmount: currentRank.qualifierAmount,
+            qualifierBusinessUsd: currentRankBreakdown.qualifierBusiness,
+            totalUsdBusiness: currentRankBreakdown.totalUsdBusiness,
+            qualifierType: currentRankBreakdown.qualifierType,
+            refereeBusiness: currentRankBreakdown.refereeBusiness,
+            MaxBusinessLeg: currentRankBreakdown.MaxBusinessLeg,
+            SecondMaxBusinessLeg: currentRankBreakdown.SecondMaxBusinessLeg,
+            restOfMembers: currentRankBreakdown.restOfMembers,
+          }
+        : {
+            title: 'No Rank',
+            index: 0,
+            qualifierAmount: 10000,
+            qualifierBusinessUsd: currentRankBreakdown.qualifierBusiness,
+            totalUsdBusiness: currentRankBreakdown.totalUsdBusiness,
+            qualifierType: currentRankBreakdown.qualifierType,
+            refereeBusiness: currentRankBreakdown.refereeBusiness,
+            MaxBusinessLeg: currentRankBreakdown.MaxBusinessLeg,
+            SecondMaxBusinessLeg: currentRankBreakdown.SecondMaxBusinessLeg,
+            restOfMembers: currentRankBreakdown.restOfMembers,
+          },
+      breakdown: currentRankBreakdown,
     };
   }
+
+  // async getAllRanksAndUserEligibilities(address: string) {
+  //   // Fetch user and ranks in parallel while using lean() to avoid Mongoose document overhead.
+  //   const [user, ranks] = await Promise.all([
+  //     this.User.findOne({ walletAddress: address }).lean(),
+  //     this.rankRewardsModel.find().sort({ rank: 1 }).lean(),
+  //   ]);
+  //   const userId = user._id.toString();
+
+  //   // Get breakdowns for each rank concurrently.
+  //   const rankBreakdowns = await Promise.all(
+  //     ranks.map((rank) =>
+  //       this.rewardsService.getQualifiedBusinessLegs2(
+  //         address,
+  //         rank.qualifierAmount,
+  //         undefined,
+  //         undefined,
+  //       ),
+  //     ),
+  //   );
+
+  //   // Determine the highest eligible rank.
+  //   let currentRankIndex = -1;
+  //   for (let i = 0; i < ranks.length; i++) {
+  //     if (rankBreakdowns[i].qualifierBusiness >= ranks[i].qualifierAmount) {
+  //       currentRankIndex = i;
+  //     }
+  //   }
+
+  //   // Map each rank to include progress and claim eligibility.
+  //   const formattedRanks = ranks.map((rank, index) => {
+  //     const breakdown = rankBreakdowns[index];
+  //     const progressPercentage =
+  //       index <= currentRankIndex + 1
+  //         ? Math.min(
+  //             (breakdown.qualifierBusiness / rank.qualifierAmount) * 100,
+  //             100,
+  //           )
+  //         : 0;
+  //     // Find the user's claim status (if any) for this rank.
+  //     const userClaimStatus = rank.userClaimedStatus.find(
+  //       (entry) => entry.userId.toString() === userId,
+  //     );
+  //     const claimStatus = userClaimStatus?.claimStatus || null;
+  //     return {
+  //       rank,
+  //       progressPercentage,
+  //       isEligibleForClaim:
+  //         breakdown.qualifierBusiness >= rank.qualifierAmount && !claimStatus,
+  //       claimStatus,
+  //       breakdown,
+  //     };
+  //   });
+
+  //   // Determine the current rank and its breakdown.
+  //   const currentRank = currentRankIndex >= 0 ? ranks[currentRankIndex] : null;
+  //   // Note: We are using the breakdown of the next rank (currentRankIndex + 1)
+  //   const currentRankBreakdown = rankBreakdowns[currentRankIndex + 1];
+
+  //   // (Optional) Logging for debugging.
+  //   console.log(currentRankIndex + 1);
+  //   console.log({ currentRankBreakdown });
+
+  //   return {
+  //     ranks: formattedRanks,
+  //     currentRank: currentRank
+  //       ? {
+  //           title: currentRank.title,
+  //           index: currentRankIndex + 1,
+  //           qualifierAmount: currentRank.qualifierAmount,
+  //           qualifierBusinessUsd: currentRankBreakdown.qualifierBusiness,
+  //           totalUsdBusiness: currentRankBreakdown.totalUsdBusiness,
+  //           qualifierType: currentRankBreakdown.qualifierType,
+  //           refereeBusiness: currentRankBreakdown.refereeBusiness,
+  //           MaxBusinessLeg: currentRankBreakdown.MaxBusinessLeg,
+  //           SecondMaxBusinessLeg: currentRankBreakdown.SecondMaxBusinessLeg,
+  //           restOfMembers: currentRankBreakdown.restOfMembers,
+  //         }
+  //       : {
+  //           title: 'No Rank',
+  //           index: 0,
+  //           qualifierAmount: 10000,
+  //           qualifierBusinessUsd: currentRankBreakdown.qualifierBusiness,
+  //           totalUsdBusiness: currentRankBreakdown.totalUsdBusiness,
+  //           qualifierType: currentRankBreakdown.qualifierType,
+  //           refereeBusiness: currentRankBreakdown.refereeBusiness,
+  //           MaxBusinessLeg: currentRankBreakdown.MaxBusinessLeg,
+  //           SecondMaxBusinessLeg: currentRankBreakdown.SecondMaxBusinessLeg,
+  //           restOfMembers: currentRankBreakdown.restOfMembers,
+  //         },
+  //     breakdown: currentRankBreakdown,
+  //   };
+  // }
 }

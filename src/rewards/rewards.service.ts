@@ -1020,11 +1020,11 @@ export class RewardsService {
     address: string,
     startDate?: any,
     endDate?: any,
+    qualifierAmount?: number,
   ) {
     let totalUsdAmount = 0;
     let directMembersStaking = 0;
 
-    // Fetch all referees (direct members)
     const referees =
       await this.ethersService.referralContract.getAllRefrees(address);
     console.log('Total referees:', referees.length);
@@ -1041,7 +1041,6 @@ export class RewardsService {
 
     let refereeStakes = [];
 
-    // Convert dates to IST (Indian Standard Time) if provided
     if (startDate && endDate) {
       const startDateIST = new Date(
         startDate.getTime() - (5 * 60 + 30) * 60 * 1000,
@@ -1065,14 +1064,12 @@ export class RewardsService {
       });
     }
 
-    // Sum up the USD amounts from direct members' stakes
     directMembersStaking = refereeStakes.reduce(
       (sum, stake) => sum + stake.usdAmount,
       0,
     );
     console.log({ directMembersStaking });
 
-    // If there are 2 or fewer referees, qualification is based on their stakes
     if (referees.length <= 2) {
       return {
         success: true,
@@ -1086,9 +1083,18 @@ export class RewardsService {
       };
     }
 
-    console.log("ypppp")
+    console.log('ypppp');
 
     // Calculate total business including self-stakes
+    // const refereeBusiness = await Promise.all(
+    //   referees.map(async (referee) => {
+    //     const { USDAmount } =
+    //       await this.getTotalBusinessWithSelfStakes(referee);
+    //     totalUsdAmount += USDAmount;
+    //     return { referee, USDAmount };
+    //   }),
+    // );
+
     const refereeBusiness = await Promise.all(
       referees.map(async (referee) => {
         const { USDAmount } =
@@ -1098,7 +1104,23 @@ export class RewardsService {
       }),
     );
 
-    // Sort referees by their business amount in descending order
+    const validReferees = refereeBusiness.filter(
+      ({ USDAmount }) => USDAmount > 0,
+    );
+
+    if (validReferees.length < 3) {
+      return {
+        success: true,
+        qualifierType: 'LEGSTAKES',
+        qualifierBusiness: directMembersStaking,
+        totalUsdBusiness: directMembersStaking,
+        refereeBusiness: refereeStakes.map((stake) => ({
+          referee: stake.walletAddress,
+          USDAmount: stake.usdAmount,
+        })),
+      };
+    }
+
     refereeBusiness.sort((a, b) => b.USDAmount - a.USDAmount);
     console.log('Sorted referees:', refereeBusiness.length);
 
@@ -1107,27 +1129,21 @@ export class RewardsService {
       allocated30_1 = 0,
       allocated30_2 = 0;
 
-    // Extract the top 2 business legs
     const [maxLeg, secondMaxLeg, ...otherLegs] = refereeBusiness;
 
-    // Allocate 40% to the highest business leg
     allocated40 = Math.min(maxLeg.USDAmount, totalUsdAmount * 0.4);
     remainingAmount -= maxLeg.USDAmount;
 
-    // Allocate 30% to the second highest business leg
     allocated30_1 = Math.min(secondMaxLeg.USDAmount, totalUsdAmount * 0.3);
     remainingAmount -= secondMaxLeg.USDAmount;
 
-    // Allocate the remaining amount to the rest of the members, capped at 30%
     allocated30_2 = Math.min(remainingAmount, totalUsdAmount * 0.3);
 
-    // Sum the remaining business from other legs
     const restOfMembersBusiness = otherLegs.reduce(
       (sum, leg) => sum + leg.USDAmount,
       0,
     );
 
-    // Determine the total qualifier business
     const totalQualifierBusiness = allocated40 + allocated30_1 + allocated30_2;
     const qualifierBusiness = Math.max(
       totalQualifierBusiness,
@@ -1157,7 +1173,171 @@ export class RewardsService {
         allocated30_2,
       },
       directMembersStaking,
-      refereeBusiness, // Return full breakdown for frontend if needed
+      refereeBusiness,
+    };
+  }
+
+  async getQualifiedBusinessLegs2(
+    address: string,
+    qualifierAmount?: number,
+    startDate?: any,
+    endDate?: any,
+  ) {
+    let totalUsdAmount = 0;
+    let directMembersStaking = 0;
+
+    const referees =
+      await this.ethersService.referralContract.getAllRefrees(address);
+    // console.log('Total referees:', referees.length);
+
+    if (referees.length === 0) {
+      return {
+        success: false,
+        message: 'Not qualified!',
+        totalUsdBusiness: 0,
+        qualifierBusiness: 0,
+        refereeBusiness: [],
+      };
+    }
+
+    let refereeStakes = [];
+
+    if (startDate && endDate) {
+      const startDateIST = new Date(
+        startDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+      );
+      const endDateIST = new Date(
+        endDate.getTime() - (5 * 60 + 30) * 60 * 1000,
+      );
+      refereeStakes = await this.StakingModel.find({
+        walletAddress: { $in: referees },
+        isReferred: false,
+        startTime: {
+          $gte: startDateIST.getTime() / 1000,
+          $lte: endDateIST.getTime() / 1000,
+        },
+      });
+    } else {
+      refereeStakes = await this.StakingModel.find({
+        walletAddress: { $in: referees },
+        isReferred: false,
+        // startTime: { $gte: 1732991400 },
+      });
+    }
+
+    directMembersStaking = refereeStakes.reduce(
+      (sum, stake) => sum + stake.usdAmount,
+      0,
+    );
+    // console.log({ directMembersStaking });
+
+    if (referees.length <= 2) {
+      return {
+        success: true,
+        qualifierType: 'LEGSTAKES',
+        qualifierBusiness: directMembersStaking,
+        totalUsdBusiness: directMembersStaking,
+        refereeBusiness: refereeStakes.map((stake) => ({
+          referee: stake.walletAddress,
+          USDAmount: stake.usdAmount,
+        })),
+      };
+    }
+
+    // console.log('Proceeding with business leg allocation');
+
+    // Calculate total business including self-stakes for each referee
+    const refereeBusiness = await Promise.all(
+      referees.map(async (referee) => {
+        const { USDAmount } =
+          await this.getTotalBusinessWithSelfStakes(referee);
+        totalUsdAmount += USDAmount;
+        return { referee, USDAmount };
+      }),
+    );
+
+    const validReferees = refereeBusiness.filter(
+      ({ USDAmount }) => USDAmount > 0,
+    );
+
+    if (validReferees.length < 3) {
+      return {
+        success: true,
+        qualifierType: 'LEGSTAKES',
+        qualifierBusiness: directMembersStaking,
+        totalUsdBusiness: directMembersStaking,
+        refereeBusiness: refereeStakes.map((stake) => ({
+          referee: stake.walletAddress,
+          USDAmount: stake.usdAmount,
+        })),
+      };
+    }
+
+    // Sort referees by their USDAmount in descending order
+    refereeBusiness.sort((a, b) => b.USDAmount - a.USDAmount);
+    // console.log('Sorted referees:', refereeBusiness.length);
+
+    // Ensure qualifierAmount is provided; if not, fallback to totalUsdAmount (or handle accordingly)
+    if (qualifierAmount == null) {
+      qualifierAmount = totalUsdAmount;
+    }
+
+    // Using the passed-in qualifierAmount to determine allocation caps.
+    const [maxLeg, secondMaxLeg, ...otherLegs] = refereeBusiness;
+
+    // Allocate up to 40% of qualifierAmount from the highest leg
+    const allocated40 = Math.min(maxLeg.USDAmount, qualifierAmount * 0.4);
+
+    // Allocate up to 30% of qualifierAmount from the second highest leg
+    const allocated30_1 = Math.min(
+      secondMaxLeg.USDAmount,
+      qualifierAmount * 0.3,
+    );
+
+    // For the remaining legs, cap the allocation at 30% of qualifierAmount
+    const otherLegsBusiness = otherLegs.reduce(
+      (sum, leg) => sum + leg.USDAmount,
+      0,
+    );
+    const allocated30_2 = Math.min(otherLegsBusiness, qualifierAmount * 0.3);
+
+    const totalQualifierBusiness = allocated40 + allocated30_1 + allocated30_2;
+    // Final qualifier business is the higher of the above or the direct staking amount
+    // console.log({directMembersStaking})
+    const qualifierBusiness = Math.max(
+      totalQualifierBusiness,
+      directMembersStaking,
+    );
+    console.log({
+      qualifierBusiness,
+      totalQualifierBusiness,
+      directMembersStaking,
+    });
+
+    return {
+      success: true,
+      qualifierType:
+        totalQualifierBusiness > directMembersStaking
+          ? 'FORTYTHIRTY'
+          : 'LEGSTAKES',
+      totalUsdBusiness: totalUsdAmount,
+      qualifierBusiness,
+      MaxBusinessLeg: {
+        referee: maxLeg.referee,
+        usdAmount: maxLeg.USDAmount,
+        allocated40,
+      },
+      SecondMaxBusinessLeg: {
+        referee: secondMaxLeg.referee,
+        usdAmount: secondMaxLeg.USDAmount,
+        allocated30_1,
+      },
+      restOfMembers: {
+        totalUsdAmount: otherLegsBusiness,
+        allocated30_2,
+      },
+      directMembersStaking,
+      refereeBusiness,
     };
   }
 
@@ -1196,13 +1376,13 @@ export class RewardsService {
           walletAddress: address,
           transactionStatus: TransactionStatusEnum.CONFIRMED,
           isReferred: false,
-          startTime: { $gte: 1732991400 },
+          // startTime: { $gte: 1732991400 },
         }),
         this.StakingModel.find({
           walletAddress: address,
           transactionStatus: TransactionStatusEnum.CONFIRMED,
           isReferred: true,
-          startTime: { $gte: 1732991400 },
+          // startTime: { $gte: 1732991400 },
         }),
       ]);
     }
@@ -1271,15 +1451,15 @@ export class RewardsService {
     const totalFit24Amount = stakeAmount + referredStakeAmount;
     const totalUSDAmount = stakeAmountInUSD + referredStakeAmopuntInUsd;
 
-    console.log({
-      address,
-      stakeAmount,
-      referredStakeAmount,
-      stakeAmountInUSD,
-      referredStakeAmopuntInUsd,
-      Fit24Amount: totalFit24Amount,
-      USDAmount: totalUSDAmount,
-    });
+    // console.log({
+    //   address,
+    //   stakeAmount,
+    //   referredStakeAmount,
+    //   stakeAmountInUSD,
+    //   referredStakeAmopuntInUsd,
+    //   Fit24Amount: totalFit24Amount,
+    //   USDAmount: totalUSDAmount,
+    // });
 
     return {
       Fit24Amount: totalFit24Amount,

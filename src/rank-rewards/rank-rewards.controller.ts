@@ -48,7 +48,7 @@ export class RankRewardsController {
   }
 
   @Get('ranks')
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   async getAllRanksAndUserEligibilities(@Request() req: UserRequest) {
     // return this.rankRewardsService.getAllRanksAndUserEligibilities(
     //   '0xAdA1E2891a83Ffcdee96582eb459Af16D7ddB39b',
@@ -58,6 +58,18 @@ export class RankRewardsController {
     // );
     // return this.rankRewardsService.getAllRanksAndUserEligibilities(
     //   '0x8725A3dbbc7b1bc74947B34922eB1b82F0aAb2C7',
+    // );
+    // return this.rankRewardsService.getAllRanksAndUserEligibilities(
+    //   '0x26128440d3F2e8385a287f349ab03202069E4A6b',
+    // );
+    // return this.rankRewardsService.getAllRanksAndUserEligibilities(
+    //   '0xFB3F9Eb5590a4295A0dFfb972C7020eC2EDc6D87',
+    // );
+    // return this.rankRewardsService.getAllRanksAndUserEligibilities(
+    //   '0xAb6AEf07A54cd86b1C995B165Ceb0170D77B02e4',
+    // );
+    // return this.rankRewardsService.getAllRanksAndUserEligibilities(
+    //   '0xDa32B4C2359f2C11f1C2aBD913cB18eFE9FFA461',
     // );
 
     return this.rankRewardsService.getAllRanksAndUserEligibilities(

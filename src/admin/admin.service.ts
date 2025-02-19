@@ -1113,33 +1113,51 @@ export class AdminService {
 
     const result = {};
 
-    const dateFromStart = dateFrom
-      ? new Date(
-          Date.UTC(
-            dateFrom.getUTCFullYear(),
-            dateFrom.getUTCMonth(),
-            dateFrom.getUTCDate(),
-            0,
-            0,
-            0,
-          ),
-        ).getTime() / 1000
-      : null;
-    const dateToEnd = dateTo
-      ? new Date(
-          Date.UTC(
-            dateTo.getUTCFullYear(),
-            dateTo.getUTCMonth(),
-            dateTo.getUTCDate(),
-            23,
-            59,
-            59,
-            999,
-          ),
-        ).getTime() / 1000
-      : null;
+    // const dateFromStart = dateFrom
+    //   ? new Date(
+    //       Date.UTC(
+    //         dateFrom.getUTCFullYear(),
+    //         dateFrom.getUTCMonth(),
+    //         dateFrom.getUTCDate(),
+    //         0,
+    //         0,
+    //         0,
+    //       ),
+    //     ).getTime() / 1000
+    //   : null;
 
-    // console.log(dateFromStart, dateToEnd);
+    // const dateToEnd = dateTo
+    //   ? new Date(
+    //       Date.UTC(
+    //         dateTo.getUTCFullYear(),
+    //         dateTo.getUTCMonth(),
+    //         dateTo.getUTCDate(),
+    //         23,
+    //         59,
+    //         59,
+    //         999,
+    //       ),
+    //     ).getTime() / 1000
+    //   : null;
+
+    const toISTTimestamp = (
+      date: Date,
+      hours: number,
+      minutes: number,
+      seconds: number,
+      ms: number,
+    ) => {
+      const istDate = new Date(date);
+      istDate.setHours(hours, minutes, seconds, ms);
+      return Math.floor(istDate.getTime() / 1000);
+    };
+
+    const dateFromStart = dateFrom
+      ? toISTTimestamp(dateFrom, 0, 0, 0, 0)
+      : null;
+    const dateToEnd = dateTo ? toISTTimestamp(dateTo, 23, 59, 59, 999) : null;
+
+    console.log(dateFromStart, dateToEnd);
 
     await Promise.all(
       referredStakes.map(async (stake) => {

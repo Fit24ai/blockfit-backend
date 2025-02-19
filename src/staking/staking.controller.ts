@@ -183,6 +183,7 @@ export class StakingController {
   ) {
     return this.stakingService.getAllLevelMembers(
       req.user.walletAddress,
+      // "0x26128440d3F2e8385a287f349ab03202069E4A6b",
       body.level,
     );
   }
@@ -249,5 +250,15 @@ export class StakingController {
   @Get('get-qualified-business/:address')
   async getQualifiedBusiness(@Param('address') address: string) {
     return this.stakingService.getQualifiedBusiness2(address);
+  }
+
+  @Get('total-business/:address')
+  async getTotalBusiness(@Param('address') address: string) {
+    return this.stakingService.getTotalBusinessWithoutSelfStakes(address);
+  }
+
+  @Get('getAllMembersWithDynamicDirectMembers/:memberCount')
+  async getAllMembersWithDynamicDirectMembers(@Param('memberCount') memberCount: number) {
+    return this.stakingService.getAllMembersWithDynamicDirectMembers(memberCount);
   }
 }

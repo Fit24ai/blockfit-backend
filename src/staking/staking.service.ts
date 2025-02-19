@@ -781,6 +781,186 @@ export class StakingService {
     return { tokens: Number(formatUnits(tokens, 18)) };
   }
 
+  async getUserTotalTokenStaked2(walletAddress: string) {
+    const stakes = await this.StakingModel.find({
+      walletAddress,
+      isReferred: false,
+    });
+    let tokens = 0;
+    for (const stake of stakes) {
+      tokens += stake.amount;
+    }
+    return { tokens };
+  }
+
+  // async getAllLevelMembers(
+  //   address: string,
+  //   targetLevel: number,
+  //   currentLevel: number = 1,
+  //   checkedAddresses: Set<string> = new Set(),
+  // ): Promise<{
+  //   totalCount: number;
+  //   zeroStakedCount: number;
+  //   stakedCount: number;
+  //   stakedData: any[];
+  //   totalStakedAmount: number;
+  // }> {
+  //   if (checkedAddresses.has(address)) {
+  //     return {
+  //       totalCount: 0,
+  //       zeroStakedCount: 0,
+  //       stakedCount: 0,
+  //       stakedData: [],
+  //       totalStakedAmount: 0,
+  //     };
+  //   }
+
+  //   // Mark the address as checked
+  //   checkedAddresses.add(address);
+
+  //   let zeroStakedCount = 0;
+  //   let stakedCount = 0;
+  //   let totalStakedAmount = 0;
+  //   let stakedData: any[] = [];
+  //   let totalCount = 0;
+
+  //   try {
+  //     const directMembers =
+  //       await this.ethersService.referralContract.getAllRefrees(address);
+
+  //     if (currentLevel === targetLevel) {
+  //       for (const member of directMembers) {
+  //         const { tokens } = await this.getUserTotalTokenStaked(member);
+
+  //         if (tokens === 0) {
+  //           zeroStakedCount += 1;
+  //         } else {
+  //           stakedCount += 1;
+  //           stakedData.push({ address: member, tokens });
+  //           totalStakedAmount += tokens;
+  //         }
+
+  //         totalCount += 1;
+  //       }
+  //     } else {
+  //       for (const member of directMembers) {
+  //         const memberResult = await this.getAllLevelMembers(
+  //           member,
+  //           targetLevel,
+  //           currentLevel + 1,
+  //           checkedAddresses,
+  //         );
+
+  //         totalCount += memberResult.totalCount;
+  //         zeroStakedCount += memberResult.zeroStakedCount;
+  //         stakedCount += memberResult.stakedCount;
+  //         stakedData = [...stakedData, ...memberResult.stakedData];
+  //         totalStakedAmount += memberResult.totalStakedAmount; // Accumulate total staked amount
+  //       }
+  //     }
+
+  //     return {
+  //       totalCount,
+  //       zeroStakedCount,
+  //       stakedCount,
+  //       stakedData,
+  //       totalStakedAmount,
+  //     };
+  //   } catch (error) {
+  //     console.error('Error fetching direct members or staked amounts:', error);
+  //     throw error;
+  //   }
+  // }
+  // async getAllLevelMembers(
+  //   address: string,
+  //   targetLevel: number,
+  //   currentLevel: number = 1,
+  //   checkedAddresses: Set<string> = new Set(),
+  // ): Promise<{
+  //   totalCount: number;
+  //   zeroStakedCount: number;
+  //   stakedCount: number;
+  //   stakedData: any[];
+  //   totalStakedAmount: number;
+  // }> {
+  //   if (checkedAddresses.has(address)) {
+  //     return {
+  //       totalCount: 0,
+  //       zeroStakedCount: 0,
+  //       stakedCount: 0,
+  //       stakedData: [],
+  //       totalStakedAmount: 0,
+  //     };
+  //   }
+
+  //   // Mark the address as checked
+  //   checkedAddresses.add(address);
+
+  //   let zeroStakedCount = 0;
+  //   let stakedCount = 0;
+  //   let totalStakedAmount = 0;
+  //   let stakedData: any[] = [];
+  //   let totalCount = 0;
+
+  //   try {
+  //     const referrals = await this.referralTrailModel.findOne({
+  //       userAddress: address,
+  //     });
+  //     if (referrals) {
+  //       const directMembers = referrals.directMembers;
+  //       if (currentLevel === targetLevel) {
+  //         for (const member of directMembers) {
+  //           const { tokens } = await this.getUserTotalTokenStaked2(member);
+
+  //           if (tokens === 0) {
+  //             zeroStakedCount += 1;
+  //           } else {
+  //             stakedCount += 1;
+  //             stakedData.push({ address: member, tokens });
+  //             totalStakedAmount += tokens;
+  //           }
+
+  //           totalCount += 1;
+  //         }
+  //       } else {
+  //         for (const member of directMembers) {
+  //           const memberResult = await this.getAllLevelMembers(
+  //             member,
+  //             targetLevel,
+  //             currentLevel + 1,
+  //             checkedAddresses,
+  //           );
+
+  //           totalCount += memberResult.totalCount;
+  //           zeroStakedCount += memberResult.zeroStakedCount;
+  //           stakedCount += memberResult.stakedCount;
+  //           stakedData = [...stakedData, ...memberResult.stakedData];
+  //           totalStakedAmount += memberResult.totalStakedAmount;
+  //         }
+  //       }
+
+  //       return {
+  //         totalCount,
+  //         zeroStakedCount,
+  //         stakedCount,
+  //         stakedData,
+  //         totalStakedAmount,
+  //       };
+  //     } else {
+  //       return {
+  //         totalCount: 0,
+  //         zeroStakedCount: 0,
+  //         stakedCount: 0,
+  //         stakedData: [],
+  //         totalStakedAmount: 0,
+  //       };
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching direct members or staked amounts:', error);
+  //     throw error;
+  //   }
+  // }
+
   async getAllLevelMembers(
     address: string,
     targetLevel: number,
@@ -813,47 +993,67 @@ export class StakingService {
     let totalCount = 0;
 
     try {
-      const directMembers =
-        await this.ethersService.referralContract.getAllRefrees(address);
+      const referrals = await this.referralTrailModel.findOne({
+        userAddress: address,
+      });
 
-      if (currentLevel === targetLevel) {
-        for (const member of directMembers) {
-          const { tokens } = await this.getUserTotalTokenStaked(member);
+      if (referrals) {
+        const directMembers = referrals.directMembers;
+        // When we reach the target level, process each direct member.
+        if (currentLevel === targetLevel) {
+          for (const member of directMembers) {
+            // Get staked tokens for the member
+            const { tokens } = await this.getUserTotalTokenStaked2(member);
+            // If we're on level 1, get the business value; otherwise, use 0.
+            const business =
+              targetLevel === 1
+                ? await this.getTotalBusinessWithoutSelfStakes(member)
+                : 0;
 
-          if (tokens === 0) {
-            zeroStakedCount += 1;
-          } else {
-            stakedCount += 1;
-            stakedData.push({ address: member, tokens });
-            totalStakedAmount += tokens;
+            if (tokens === 0) {
+              zeroStakedCount += 1;
+            } else {
+              stakedCount += 1;
+              // Include the business data along with the address and tokens.
+              stakedData.push({ address: member, tokens, business });
+              totalStakedAmount += tokens;
+            }
+            totalCount += 1;
           }
+        } else {
+          // If not at the target level yet, keep recursing
+          for (const member of directMembers) {
+            const memberResult = await this.getAllLevelMembers(
+              member,
+              targetLevel,
+              currentLevel + 1,
+              checkedAddresses,
+            );
 
-          totalCount += 1;
+            totalCount += memberResult.totalCount;
+            zeroStakedCount += memberResult.zeroStakedCount;
+            stakedCount += memberResult.stakedCount;
+            stakedData = [...stakedData, ...memberResult.stakedData];
+            totalStakedAmount += memberResult.totalStakedAmount;
+          }
         }
+
+        return {
+          totalCount,
+          zeroStakedCount,
+          stakedCount,
+          stakedData,
+          totalStakedAmount,
+        };
       } else {
-        for (const member of directMembers) {
-          const memberResult = await this.getAllLevelMembers(
-            member,
-            targetLevel,
-            currentLevel + 1,
-            checkedAddresses,
-          );
-
-          totalCount += memberResult.totalCount;
-          zeroStakedCount += memberResult.zeroStakedCount;
-          stakedCount += memberResult.stakedCount;
-          stakedData = [...stakedData, ...memberResult.stakedData];
-          totalStakedAmount += memberResult.totalStakedAmount; // Accumulate total staked amount
-        }
+        return {
+          totalCount: 0,
+          zeroStakedCount: 0,
+          stakedCount: 0,
+          stakedData: [],
+          totalStakedAmount: 0,
+        };
       }
-
-      return {
-        totalCount,
-        zeroStakedCount,
-        stakedCount,
-        stakedData,
-        totalStakedAmount,
-      };
     } catch (error) {
       console.error('Error fetching direct members or staked amounts:', error);
       throw error;
@@ -1236,6 +1436,27 @@ export class StakingService {
   //   // Start recursion from the given user at level 1
   //   return await fetchTeamWithLevels([userAddress], 1, []);
   // }
+
+  async getTotalBusinessWithoutSelfStakes(userAddress: string) {
+    const referredStakes = await this.StakingModel.find({
+      walletAddress: userAddress,
+      isReferred: true,
+    });
+
+    const stakePromises = referredStakes.map(async (stake) => {
+      const refStake = await this.StakingModel.findOne({
+        stakeId: stake.refId,
+        transactionStatus: TransactionStatusEnum.CONFIRMED,
+      });
+
+      return refStake ? refStake.amount : 0;
+    });
+
+    const amounts = await Promise.all(stakePromises);
+    const totalAmount = amounts.reduce((sum, amount) => sum + amount, 0);
+
+    return totalAmount;
+  }
 
   async getTeamWithLevelsAndTotal(userAddress: string): Promise<{
     totalTeamSize: number;
@@ -1908,5 +2129,27 @@ export class StakingService {
       levelBusiness: Object.fromEntries(levelBusinessMap),
       message: `The qualifier business is calculated as ${qualifierBusiness}`,
     };
+  }
+
+  async getAllMembersWithDynamicDirectMembers(memberCount: number) {
+    console.log('called');
+    console.log({ memberCount });
+    const data = [];
+    const users = await this.ethersService.icoContract.getAllUsers();
+    await Promise.all(
+      users.map(async (user) => {
+        // const tokens = await this.getUserTotalTokenStaked(user);
+        const referral = await this.referralTrailModel.findOne({
+          userAddress: user,
+        });
+        const directMembers = referral.directMembers;
+        // console.log({ user, directMembers: directMembers.length });
+        if (Number(directMembers.length) === Number(memberCount)) {
+          console.log({ user });
+          data.push(user);
+        }
+      }),
+    );
+    return data;
   }
 }
