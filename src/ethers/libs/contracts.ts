@@ -15,6 +15,8 @@ export const EthereumPaymentContract =
   '0x8B7547c84D435e96812b54B7d2AaEA48D4c49EDB';
 export const BinancePaymentContract =
   '0x72e56adb351Bc1DA1A37B2C5bB6cA40fBB373322';
+export const BlokfitPaymentContractAddress =
+  '0xf914FAdDe64E2e965f62b0Abb44708D2e9234548';
 export const fit24ReferralContractAddress =
   '0xe486A621eD93178D9A68d0fa317FF19Da20c5BdB';
 export const buyContract = '0x49DE6A49A3BC99669c13d5d6dCa7C39d1B7a1379';

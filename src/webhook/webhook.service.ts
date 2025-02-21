@@ -119,6 +119,34 @@ export class WebhookService {
           poolType: poolTypeBinance,
           apr: aprBinance,
         };
+
+      case ChainEnum.BLOKFIT:
+        const providerReceiptBlokfit =
+          await this.ethersService.icoProvider.getTransactionReceipt(
+            transactionHash,
+          );
+        console.log('providerReceiptBlokfit', providerReceiptBlokfit);
+        const BlokfitLogs = this.ethersService.paymentInterface.parseLog(
+          providerReceiptBlokfit?.logs[providerReceiptBlokfit.logs.length - 1]!,
+        );
+
+        console.log('BlokfitLogs', BlokfitLogs);
+        const poolTypeBlokfit = Number(BlokfitLogs.args[3]);
+        const aprBlokfit = Number(BlokfitLogs.args[4]);
+
+        console.log('new');
+
+        const verifyBlokfit = this.verifyTransactionConditions(
+          BlokfitLogs,
+          amount,
+          user,
+        );
+
+        return {
+          isValid: verifyBinance,
+          poolType: poolTypeBinance,
+          apr: aprBinance,
+        };
       default:
         throw new Error('Unsupported chain');
     }
@@ -214,9 +242,9 @@ export class WebhookService {
       const { txHash } = await this.transferService.transferTokens({
         walletAddress: paymentReceived.user,
         purchaseAmount:
-          transaction.chain === ChainEnum.BINANCE
-            ? BigInt(paymentReceived.amount)
-            : parseEther(formatUnits(paymentReceived.amount, 6)),
+          transaction.chain === ChainEnum.ETHEREUM
+            ? parseEther(formatUnits(paymentReceived.amount, 6))
+            : BigInt(paymentReceived.amount),
         transactionHash: paymentReceived.transaction_hash,
         poolType: poolType,
         apr: apr,
@@ -253,9 +281,9 @@ export class WebhookService {
           transaction.distributionHash,
           paymentReceived.user,
           this.BigToNumber(
-            transaction.chain === ChainEnum.BINANCE
-              ? BigInt(paymentReceived.amount)
-              : parseEther(formatUnits(paymentReceived.amount, 6)),
+            transaction.chain === ChainEnum.ETHEREUM
+              ? parseEther(formatUnits(paymentReceived.amount, 6))
+              : BigInt(paymentReceived.amount),
           ),
         );
         transaction.stakingStatus = StakingStatus.STAKED;
@@ -324,7 +352,8 @@ export class WebhookService {
           console.error('Failed to parse filtered log:', error);
         }
       }
-    } else {
+    } else if (transaction.chain === 'ETHEREUM') {
+      console.log('ETHEREUM');
       const receipt =
         await this.ethersService.ethereumProvider.getTransactionReceipt(tx);
       const paymentLogs = receipt.logs.filter(
@@ -352,6 +381,37 @@ export class WebhookService {
               ),
               token: parsedLog.args[4],
               chain: ChainEnum.ETHEREUM,
+            });
+            console.log('done');
+          }
+        } catch (error) {
+          console.error('Failed to parse filtered log:', error);
+        }
+      }
+    } else {
+      console.log('BLOKFIT');
+      const receipt =
+        await this.ethersService.icoProvider.getTransactionReceipt(tx);
+      const paymentLogs = receipt.logs.filter(
+        (log) => log.topics[0] === process.env.REFERRAL_INCOME_RECEIVED,
+      );
+      for (const log of paymentLogs) {
+        try {
+          const parsedLog = this.ethersService.paymentInterface.parseLog(log);
+          console.log('Parsed Log:', parsedLog.args);
+          const ref = await this.referrlaTransaction.findOne({
+            transactionHash: tx,
+          });
+          console.log(ref);
+          if (!ref) {
+            await this.referrlaTransaction.create({
+              transactionHash: tx,
+              referrer: parsedLog.args[0],
+              buyer: parsedLog.args[1],
+              buyAmount: this.BigToNumber(parsedLog.args[2]),
+              referralIncome: this.BigToNumber(parsedLog.args[3]),
+              token: parsedLog.args[4],
+              chain: ChainEnum.BLOKFIT,
             });
             console.log('done');
           }

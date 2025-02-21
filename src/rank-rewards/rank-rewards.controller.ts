@@ -48,7 +48,7 @@ export class RankRewardsController {
   }
 
   @Get('ranks')
-  // @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async getAllRanksAndUserEligibilities(@Request() req: UserRequest) {
     // return this.rankRewardsService.getAllRanksAndUserEligibilities(
     //   '0xAdA1E2891a83Ffcdee96582eb459Af16D7ddB39b',
