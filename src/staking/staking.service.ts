@@ -744,12 +744,14 @@ export class StakingService {
       const referredStakes = await this.StakingModel.find({
         walletAddress: address,
         isReferred: true,
+        transactionStatus: TransactionStatusEnum.CONFIRMED
       });
 
       await Promise.all(
         referredStakes.map(async (stake) => {
           const refereeStake = await this.StakingModel.findOne({
             stakeId: stake.refId,
+            transactionStatus: TransactionStatusEnum.CONFIRMED
           });
 
           if (refereeStake) {
@@ -1253,6 +1255,7 @@ export class StakingService {
           success: true,
         };
       } else {
+        console.log({ txHash, chain });
         const receipt =
           this.ethersService.icoProvider.waitForTransaction(txHash);
         console.log('BLOKFIT');
@@ -1441,6 +1444,7 @@ export class StakingService {
     const referredStakes = await this.StakingModel.find({
       walletAddress: userAddress,
       isReferred: true,
+      transactionStatus: TransactionStatusEnum.CONFIRMED
     });
 
     const stakePromises = referredStakes.map(async (stake) => {

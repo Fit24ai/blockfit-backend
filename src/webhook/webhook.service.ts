@@ -120,7 +120,7 @@ export class WebhookService {
           apr: aprBinance,
         };
 
-      case ChainEnum.BLOKFIT:
+      case ChainEnum.BLOCKFIT:
         const providerReceiptBlokfit =
           await this.ethersService.icoProvider.getTransactionReceipt(
             transactionHash,
@@ -143,9 +143,9 @@ export class WebhookService {
         );
 
         return {
-          isValid: verifyBinance,
-          poolType: poolTypeBinance,
-          apr: aprBinance,
+          isValid: verifyBlokfit,
+          poolType: poolTypeBlokfit,
+          apr: aprBlokfit,
         };
       default:
         throw new Error('Unsupported chain');
@@ -411,7 +411,7 @@ export class WebhookService {
               buyAmount: this.BigToNumber(parsedLog.args[2]),
               referralIncome: this.BigToNumber(parsedLog.args[3]),
               token: parsedLog.args[4],
-              chain: ChainEnum.BLOKFIT,
+              chain: ChainEnum.BLOCKFIT,
             });
             console.log('done');
           }

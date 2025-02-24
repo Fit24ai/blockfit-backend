@@ -2,7 +2,7 @@ export enum ChainEnum {
   ETHEREUM = 'ETHEREUM',
   BINANCE = 'BINANCE',
   POLYGON = 'POLYGON',
-  BLOKFIT = 'BLOKFIT',
+  BLOCKFIT = "BLOCKFIT",
 }
 
 export enum TransactionStatusEnum {

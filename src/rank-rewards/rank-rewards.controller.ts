@@ -71,6 +71,9 @@ export class RankRewardsController {
     // return this.rankRewardsService.getAllRanksAndUserEligibilities(
     //   '0xDa32B4C2359f2C11f1C2aBD913cB18eFE9FFA461',
     // );
+    // return this.rankRewardsService.getAllRanksAndUserEligibilities(
+    //   '0xE2c90A07D508a8D88963112B499eCECc1C7c5bC3',
+    // );
 
     return this.rankRewardsService.getAllRanksAndUserEligibilities(
       req.user.walletAddress,
