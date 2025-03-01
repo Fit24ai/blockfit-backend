@@ -19,6 +19,18 @@ import { Rewards, RewardsSchema } from './entities/reward.entity';
 import { JwtService } from '@nestjs/jwt';
 import { AdminJwtStrategy } from 'src/passport/admin-passport.strategy';
 import { S3Service } from 'src/utils/s3Sevice';
+import {
+  ReferralTrail,
+  ReferralTrailSchema,
+} from 'src/staking/schema/referralTrail.schema';
+import {
+  UserTotalBusiness,
+  UserTotalBusinessSchema,
+} from 'src/staking/schema/user-total-business';
+import {
+  UserTotalBusinessAfter1Dec,
+  UserTotalBusinessAfter1DecSchema,
+} from 'src/staking/schema/user-total-business-after-1dec';
 
 @Module({
   imports: [
@@ -27,6 +39,12 @@ import { S3Service } from 'src/utils/s3Sevice';
       { name: Admin.name, schema: AdminSchema },
       { name: StakingTransaction.name, schema: StakingTransactionSchema },
       { name: Rewards.name, schema: RewardsSchema },
+      { name: ReferralTrail.name, schema: ReferralTrailSchema },
+      { name: UserTotalBusiness.name, schema: UserTotalBusinessSchema },
+      {
+        name: UserTotalBusinessAfter1Dec.name,
+        schema: UserTotalBusinessAfter1DecSchema,
+      },
     ]),
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
 

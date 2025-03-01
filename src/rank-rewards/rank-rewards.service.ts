@@ -322,7 +322,7 @@ export class RankRewardsService {
     const userId = user._id.toString();
     // Get user's qualified business USD
     const { qualifierBusiness } =
-      await this.rewardsService.getQualifiedBusinessLegs(address);
+      await this.rewardsService.getQualifiedBusinessLegs2(address);
 
     // Find the rank by ID
     const rank = await this.rankRewardsModel.findById(rankId);
@@ -961,8 +961,8 @@ export class RankRewardsService {
 
     const currentRank = currentRankIndex >= 0 ? ranks[currentRankIndex] : null;
     const currentRankBreakdown = rankBreakdowns[currentRankIndex + 1];
-    console.log(currentRankIndex + 1);
-    console.log({currentRankBreakdown})
+    // console.log(currentRankIndex + 1);
+    // console.log({currentRankBreakdown})
 
     return {
       ranks: formattedRanks,

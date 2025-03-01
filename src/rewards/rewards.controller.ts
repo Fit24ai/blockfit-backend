@@ -51,6 +51,11 @@ export class RewardsController {
     // );
   }
 
+  @Get('getTotalStakedAmount/:walletAddress')
+  async getTotalStakedAmount(@Param('walletAddress') walletAddress: string) {
+    return this.rewardsService.getTotalReferralBusinessInfinity(walletAddress);
+  }
+
   @Post('create')
   @UseGuards(AdminJwtAuthGuard)
   @UseInterceptors(FileFieldsInterceptor([{ name: 'image', maxCount: 1 }]))

@@ -74,6 +74,33 @@ export class RankRewardsController {
     // return this.rankRewardsService.getAllRanksAndUserEligibilities(
     //   '0xE2c90A07D508a8D88963112B499eCECc1C7c5bC3',
     // );
+    // return this.rankRewardsService.getAllRanksAndUserEligibilities(
+    //   '0xC35468b7427102c94e387d0798Dda9f295A3b868',
+    // );
+    // return this.rankRewardsService.getAllRanksAndUserEligibilities(
+    //   '0xeC6341C0D5068e8093425e67a3C8e92fff288768',
+    // );
+    // return this.rankRewardsService.getAllRanksAndUserEligibilities(
+    //   '0x26128440d3F2e8385a287f349ab03202069E4A6b',
+    // );
+    // return this.rankRewardsService.getAllRanksAndUserEligibilities(
+    //   '0xDa32B4C2359f2C11f1C2aBD913cB18eFE9FFA461',
+    // );
+    // return this.rankRewardsService.getAllRanksAndUserEligibilities(
+    //   '0xA34b9d29467e0359b60034E54D3b883e8ADCBe1B',
+    // );
+    // return this.rankRewardsService.getAllRanksAndUserEligibilities(
+    //   '0xFE6a5591acdD4E0714f9D925011D748B2CB0a4Db',
+    // );
+    // return this.rankRewardsService.getAllRanksAndUserEligibilities(
+    //   '0xAdA1E2891a83Ffcdee96582eb459Af16D7ddB39b',
+    // );
+    // console.log({ address: req.user.walletAddress });
+    // return this.rankRewardsService.getAllRanksAndUserEligibilities(
+    //   req.user.walletAddress === '0x50Ca1fde29D62292a112A72671E14a5d4f05580f'
+    //     ? '0xDa32B4C2359f2C11f1C2aBD913cB18eFE9FFA461'
+    //     : '0xAdA1E2891a83Ffcdee96582eb459Af16D7ddB39b',
+    // );
 
     return this.rankRewardsService.getAllRanksAndUserEligibilities(
       req.user.walletAddress,
@@ -87,7 +114,7 @@ export class RankRewardsController {
     @Param('rankId') rankId: string,
   ) {
     // return this.rankRewardsService.claimRankReward(
-    //   '0x53bC7cEC2EEc02f1CC467a7c2B9B5FC5D659acff',
+    //   '0xDa32B4C2359f2C11f1C2aBD913cB18eFE9FFA461',
     //   rankId,
     // );
 

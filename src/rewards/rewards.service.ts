@@ -25,6 +25,9 @@ import {
 import { UserRequest } from 'src/types/user';
 import { S3Service } from 'src/utils/s3Sevice';
 import { UploadImageDto } from './dto/uploadImage.dto';
+import { ReferralTrail } from 'src/staking/schema/referralTrail.schema';
+import { UserTotalBusiness } from 'src/staking/schema/user-total-business';
+import { UserTotalBusinessAfter1Dec } from 'src/staking/schema/user-total-business-after-1dec';
 
 @Injectable()
 export class RewardsService {
@@ -38,6 +41,12 @@ export class RewardsService {
     private Transaction: Model<StakingTransaction>,
     @InjectModel(ClaimedHistory.name)
     private ClaimedHistoryModel: Model<ClaimedHistory>,
+    @InjectModel(ReferralTrail.name)
+    private referralTrailModel: Model<ReferralTrail>,
+    @InjectModel(UserTotalBusiness.name)
+    private userTotalBusinessModel: Model<UserTotalBusiness>,
+    @InjectModel(UserTotalBusinessAfter1Dec.name)
+    private userTotalBusinessAfter1DecModel: Model<UserTotalBusinessAfter1Dec>,
   ) {}
 
   async getUserTotalTokenStaked(walletAddress: string) {
@@ -1250,7 +1259,8 @@ export class RewardsService {
     const refereeBusiness = await Promise.all(
       referees.map(async (referee) => {
         const { USDAmount } =
-          await this.getTotalBusinessWithSelfStakes(referee);
+          // await this.getTotalBusinessWithSelfStakes(referee);
+          await this.getTotalBusinessWithSelfStakes2(referee);
         totalUsdAmount += USDAmount;
         return { referee, USDAmount };
       }),
@@ -1465,5 +1475,144 @@ export class RewardsService {
       Fit24Amount: totalFit24Amount,
       USDAmount: totalUSDAmount,
     };
+  }
+
+  async getTotalBusinessWithSelfStakes2(
+    address: string,
+    startDate?: any,
+    endDate?: any,
+  ) {
+    let totalFit24Amount = 0;
+    let totalUSDAmount = 0;
+    const userBusiness = await this.userTotalBusinessAfter1DecModel.findOne({
+      walletAddress: address,
+    });
+    // console.log({ userBusiness });
+    if (userBusiness) {
+      totalFit24Amount =
+        userBusiness.totalReferralBusiness + userBusiness.selfStakes;
+      totalUSDAmount =
+        userBusiness.totalReferralBusinessUsd + userBusiness.selfStakesUsd;
+    }
+
+    return {
+      Fit24Amount: totalFit24Amount,
+      USDAmount: totalUSDAmount,
+    };
+  }
+
+  async getTotalReferralBusinessInfinity(
+    address: string,
+    checkedAddresses: Set<string> = new Set(),
+    currentLevel: number = 0,
+  ): Promise<{
+    totalStakedAmount: number;
+    totalUsdStakedAmount: number;
+    maxReferralLevel: number;
+  }> {
+    if (checkedAddresses.has(address)) {
+      return {
+        totalStakedAmount: 0,
+        totalUsdStakedAmount: 0,
+        maxReferralLevel: currentLevel - 1,
+      };
+    }
+    checkedAddresses.add(address);
+
+    try {
+      // Fetch the root user's tokens
+      const { tokens: currentUserTokens, usdTokens: currentUserUsdTokens } =
+        await this.getUserTotalTokenStaked2(address);
+
+      const referrals = await this.referralTrailModel.findOne({
+        userAddress: address,
+      });
+
+      if (!referrals || !referrals.directMembers?.length) {
+        // No referrals, so return the root user's staked tokens.
+        return {
+          totalStakedAmount: currentUserTokens,
+          totalUsdStakedAmount: currentUserUsdTokens,
+          maxReferralLevel: currentLevel,
+        };
+      }
+
+      // Fetch tokens for direct members concurrently.
+      const tokenPromises = referrals.directMembers.map(async (member) => {
+        const { tokens, usdTokens } =
+          await this.getUserTotalTokenStaked2(member);
+        return { tokens, usdTokens };
+      });
+
+      // Recursively fetch totals and levels for each direct member.
+      const recursivePromises = referrals.directMembers.map((member) =>
+        this.getTotalReferralBusinessInfinity(
+          member,
+          checkedAddresses,
+          currentLevel + 1,
+        ),
+      );
+
+      const [tokenResults, recursiveResults] = await Promise.all([
+        Promise.all(tokenPromises),
+        Promise.all(recursivePromises),
+      ]);
+
+      // Sum tokens for direct members.
+      const directTokensSum = tokenResults.reduce(
+        (sum, result) => sum + result.tokens,
+        0,
+      );
+      const directUsdTokensSum = tokenResults.reduce(
+        (sum, result) => sum + result.usdTokens,
+        0,
+      );
+
+      // Sum tokens from recursive referrals.
+      const recursiveTokensSum = recursiveResults.reduce(
+        (sum, result) => sum + result.totalStakedAmount,
+        0,
+      );
+      const recursiveUsdTokensSum = recursiveResults.reduce(
+        (sum, result) => sum + result.totalUsdStakedAmount,
+        0,
+      );
+
+      // Determine the deepest referral level in the subtree.
+      const maxReferralLevelInSubtree = recursiveResults.reduce(
+        (maxLevel, result) => Math.max(maxLevel, result.maxReferralLevel),
+        currentLevel,
+      );
+
+      // Include the current (root) user's tokens in the totals.
+      return {
+        totalStakedAmount:
+          currentUserTokens + directTokensSum + recursiveTokensSum,
+        totalUsdStakedAmount:
+          currentUserUsdTokens + directUsdTokensSum + recursiveUsdTokensSum,
+        maxReferralLevel: maxReferralLevelInSubtree,
+      };
+    } catch (error) {
+      console.error('Error fetching staked amounts:', error);
+      return {
+        totalStakedAmount: 0,
+        totalUsdStakedAmount: 0,
+        maxReferralLevel: currentLevel,
+      };
+    }
+  }
+
+  async getUserTotalTokenStaked2(walletAddress: string) {
+    const stakes = await this.StakingModel.find({
+      walletAddress,
+      isReferred: false,
+    });
+    let tokens = 0;
+    let usdTokens = 0;
+    for (const stake of stakes) {
+      tokens += stake.amount;
+      usdTokens += stake.usdAmount;
+    }
+    return { tokens, usdTokens };
   }
 }

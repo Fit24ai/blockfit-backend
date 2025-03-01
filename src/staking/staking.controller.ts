@@ -183,7 +183,6 @@ export class StakingController {
   ) {
     return this.stakingService.getAllLevelMembers(
       req.user.walletAddress,
-      // "0x26128440d3F2e8385a287f349ab03202069E4A6b",
       body.level,
     );
   }
@@ -193,6 +192,11 @@ export class StakingController {
     @Body() body: { level: number; address: string },
   ) {
     return this.stakingService.getAllLevelMembers(body.address, body.level);
+  }
+
+  @Get('getTotalStakedAmount/:walletAddress')
+  async getTotalStakedAmount(@Param('walletAddress') walletAddress: string) {
+    return this.stakingService.getTotalReferralBusinessInfinity(walletAddress);
   }
 
   @Get('get-total-network-members')
@@ -258,7 +262,16 @@ export class StakingController {
   }
 
   @Get('getAllMembersWithDynamicDirectMembers/:memberCount')
-  async getAllMembersWithDynamicDirectMembers(@Param('memberCount') memberCount: number) {
-    return this.stakingService.getAllMembersWithDynamicDirectMembers(memberCount);
+  async getAllMembersWithDynamicDirectMembers(
+    @Param('memberCount') memberCount: number,
+  ) {
+    return this.stakingService.getAllMembersWithDynamicDirectMembers(
+      memberCount,
+    );
+  }
+
+  @Get('fit24-token-price')
+  async getFit24TokenPrice() {
+    return this.stakingService.getFit24TokenPrice();
   }
 }

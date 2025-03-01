@@ -30,6 +30,8 @@ import {
   ReferralTrail,
   ReferralTrailSchema,
 } from './schema/referralTrail.schema';
+import { UserTotalBusiness, UserTotalBusinessSchema } from './schema/user-total-business';
+import { UserTotalBusinessAfter1Dec, UserTotalBusinessAfter1DecSchema } from './schema/user-total-business-after-1dec';
 
 @Module({
   imports: [
@@ -48,6 +50,11 @@ import {
       {
         name: ClaimedHistory.name,
         schema: ClaimedHistorySchema,
+      },
+      { name: UserTotalBusiness.name, schema: UserTotalBusinessSchema },
+      {
+        name: UserTotalBusinessAfter1Dec.name,
+        schema: UserTotalBusinessAfter1DecSchema,
       },
     ]),
   ],

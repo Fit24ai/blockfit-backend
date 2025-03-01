@@ -34,6 +34,9 @@ import { ClaimedHistory } from './schema/claimedHistory.schema';
 import { StakingTransaction } from 'src/staking-transaction/schema/stakingTransaction.schema';
 import { ReferralTransaction } from 'src/webhook/schema/referralTransaction.schema';
 import { ReferralTrail } from './schema/referralTrail.schema';
+import { UserTotalBusiness } from './schema/user-total-business';
+import { UserTotalBusinessAfter1Dec } from './schema/user-total-business-after-1dec';
+import axios from 'axios';
 
 @Injectable()
 export class StakingService {
@@ -54,6 +57,10 @@ export class StakingService {
     private claimedHistotyModel: Model<ClaimedHistory>,
     @InjectModel(ReferralTrail.name)
     private referralTrailModel: Model<ReferralTrail>,
+    @InjectModel(UserTotalBusiness.name)
+    private userTotalBusinessModel: Model<UserTotalBusiness>,
+    @InjectModel(UserTotalBusinessAfter1Dec.name)
+    private userTotalBusinessAfter1DecModel: Model<UserTotalBusinessAfter1Dec>,
   ) {}
 
   private BigIntToNumber(value: BigInt) {
@@ -744,14 +751,14 @@ export class StakingService {
       const referredStakes = await this.StakingModel.find({
         walletAddress: address,
         isReferred: true,
-        transactionStatus: TransactionStatusEnum.CONFIRMED
+        transactionStatus: TransactionStatusEnum.CONFIRMED,
       });
 
       await Promise.all(
         referredStakes.map(async (stake) => {
           const refereeStake = await this.StakingModel.findOne({
             stakeId: stake.refId,
-            transactionStatus: TransactionStatusEnum.CONFIRMED
+            transactionStatus: TransactionStatusEnum.CONFIRMED,
           });
 
           if (refereeStake) {
@@ -1001,29 +1008,30 @@ export class StakingService {
 
       if (referrals) {
         const directMembers = referrals.directMembers;
-        // When we reach the target level, process each direct member.
         if (currentLevel === targetLevel) {
           for (const member of directMembers) {
-            // Get staked tokens for the member
             const { tokens } = await this.getUserTotalTokenStaked2(member);
-            // If we're on level 1, get the business value; otherwise, use 0.
             const business =
               targetLevel === 1
-                ? await this.getTotalBusinessWithoutSelfStakes(member)
+                ? // ? await this.getTotalBusinessWithoutSelfStakes(member)
+                  // await this.getTotalReferralBusinessInfinity(member)
+                  await this.getTotalReferralBusinessInfinity2(member)
                 : 0;
 
             if (tokens === 0) {
               zeroStakedCount += 1;
             } else {
               stakedCount += 1;
-              // Include the business data along with the address and tokens.
-              stakedData.push({ address: member, tokens, business });
+              stakedData.push({
+                address: member,
+                tokens,
+                business: business,
+              });
               totalStakedAmount += tokens;
             }
             totalCount += 1;
           }
         } else {
-          // If not at the target level yet, keep recursing
           for (const member of directMembers) {
             const memberResult = await this.getAllLevelMembers(
               member,
@@ -1062,38 +1070,194 @@ export class StakingService {
     }
   }
 
+  // async getTotalStakedAmount(
+  //   address: string,
+  //   checkedAddresses: Set<string> = new Set(),
+  // ): Promise<{ totalStakedAmount: number }> {
+  //   if (checkedAddresses.has(address)) {
+  //     return { totalStakedAmount: 0 };
+  //   }
+
+  //   checkedAddresses.add(address);
+
+  //   let totalStakedAmount = 0;
+
+  //   try {
+  //     const referrals = await this.referralTrailModel.findOne({
+  //       userAddress: address,
+  //     });
+
+  //     if (referrals) {
+  //       for (const member of referrals.directMembers) {
+  //         const { tokens } = await this.getUserTotalTokenStaked2(member);
+
+  //         totalStakedAmount += tokens;
+
+  //         const result = await this.getTotalStakedAmount(
+  //           member,
+  //           checkedAddresses,
+  //         );
+  //         totalStakedAmount += result.totalStakedAmount;
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching staked amounts:', error);
+  //   }
+
+  //   return { totalStakedAmount };
+  // }
+
+  // async getTotalStakedAmount(
+  //   address: string,
+  //   checkedAddresses: Set<string> = new Set(),
+  // ): Promise<{ totalStakedAmount: number }> {
+  //   if (checkedAddresses.has(address)) {
+  //     return { totalStakedAmount: 0 };
+  //   }
+  //   checkedAddresses.add(address);
+
+  //   try {
+  //     const referrals = await this.referralTrailModel.findOne({
+  //       userAddress: address,
+  //     });
+  //     if (!referrals || !referrals.directMembers?.length) {
+  //       return { totalStakedAmount: 0 };
+  //     }
+
+  //     // Run both the token fetch and the recursive calls concurrently for all direct members.
+  //     const tokenPromises = referrals.directMembers.map(async (member) => {
+  //       const { tokens } = await this.getUserTotalTokenStaked2(member);
+  //       return tokens;
+  //     });
+  //     const recursivePromises = referrals.directMembers.map((member) =>
+  //       this.getTotalStakedAmount(member, checkedAddresses),
+  //     );
+
+  //     const [tokenResults, recursiveResults] = await Promise.all([
+  //       Promise.all(tokenPromises),
+  //       Promise.all(recursivePromises),
+  //     ]);
+
+  //     // Sum up the tokens for direct members.
+  //     const directTokensSum = tokenResults.reduce(
+  //       (sum, tokens) => sum + tokens,
+  //       0,
+  //     );
+  //     // Sum up the tokens returned from recursive calls.
+  //     const recursiveTokensSum = recursiveResults.reduce(
+  //       (sum, result) => sum + result.totalStakedAmount,
+  //       0,
+  //     );
+
+  //     return { totalStakedAmount: directTokensSum + recursiveTokensSum };
+  //   } catch (error) {
+  //     console.error('Error fetching staked amounts:', error);
+  //     return { totalStakedAmount: 0 };
+  //   }
+  // }
+
+  async getTotalReferralBusinessInfinity2(address: string) {
+    const userBusiness = await this.userTotalBusinessModel.findOne({
+      walletAddress: address,
+    });
+    console.log({ userBusiness });
+    if (userBusiness) {
+      return userBusiness.totalReferralBusiness;
+    }
+    return 0;
+  }
+
+  async getTotalReferralBusinessInfinity(
+    address: string,
+    checkedAddresses: Set<string> = new Set(),
+    currentLevel: number = 0,
+  ): Promise<{ totalStakedAmount: number; maxReferralLevel: number }> {
+    if (checkedAddresses.has(address)) {
+      return { totalStakedAmount: 0, maxReferralLevel: currentLevel - 1 };
+    }
+    checkedAddresses.add(address);
+
+    try {
+      const referrals = await this.referralTrailModel.findOne({
+        userAddress: address,
+      });
+      if (!referrals || !referrals.directMembers?.length) {
+        // No further referrals: the max level in this branch is the current level.
+        return { totalStakedAmount: 0, maxReferralLevel: currentLevel };
+      }
+
+      // Fetch tokens for direct members concurrently.
+      const tokenPromises = referrals.directMembers.map(async (member) => {
+        const { tokens } = await this.getUserTotalTokenStaked2(member);
+        return tokens;
+      });
+
+      // Recursively fetch totals and levels for each direct member, incrementing the level.
+      const recursivePromises = referrals.directMembers.map((member) =>
+        this.getTotalReferralBusinessInfinity(
+          member,
+          checkedAddresses,
+          currentLevel + 1,
+        ),
+      );
+
+      const [tokenResults, recursiveResults] = await Promise.all([
+        Promise.all(tokenPromises),
+        Promise.all(recursivePromises),
+      ]);
+
+      // Sum the tokens from direct members.
+      const directTokensSum = tokenResults.reduce(
+        (sum, tokens) => sum + tokens,
+        0,
+      );
+      // Sum the tokens from recursive referrals.
+      const recursiveTokensSum = recursiveResults.reduce(
+        (sum, result) => sum + result.totalStakedAmount,
+        0,
+      );
+
+      // Determine the deepest referral level in the subtree.
+      const maxReferralLevelInSubtree = recursiveResults.reduce(
+        (maxLevel, result) => Math.max(maxLevel, result.maxReferralLevel),
+        currentLevel,
+      );
+
+      return {
+        totalStakedAmount: Number(directTokensSum + recursiveTokensSum),
+        maxReferralLevel: maxReferralLevelInSubtree,
+      };
+    } catch (error) {
+      console.error('Error fetching staked amounts:', error);
+      return { totalStakedAmount: 0, maxReferralLevel: currentLevel };
+    }
+  }
+
   async getUserLevel(
     address: string,
     checkedAddresses: Set<string> = new Set(),
   ): Promise<number> {
-    // If the address has already been checked, return level 0
     if (checkedAddresses.has(address)) {
       return 0;
     }
 
-    // Mark the address as checked
     checkedAddresses.add(address);
 
     try {
-      // Fetch direct members (referrals)
       const directMembers =
         await this.ethersService.referralContract.getAllRefrees(address);
 
       if (directMembers.length === 0) {
-        // If no direct members, the level is 0
         return 0;
       }
 
-      // Start with level 1 if there are direct members
       let maxLevel = 1;
 
-      // Recursively determine the level of each direct member
       for (const member of directMembers) {
         const memberLevel = await this.getUserLevel(member, checkedAddresses);
         maxLevel = Math.max(maxLevel, memberLevel + 1);
       }
 
-      // Return the maximum level found
       return maxLevel;
     } catch (error) {
       console.error('Error fetching direct members:', error);
@@ -1444,7 +1608,7 @@ export class StakingService {
     const referredStakes = await this.StakingModel.find({
       walletAddress: userAddress,
       isReferred: true,
-      transactionStatus: TransactionStatusEnum.CONFIRMED
+      transactionStatus: TransactionStatusEnum.CONFIRMED,
     });
 
     const stakePromises = referredStakes.map(async (stake) => {
@@ -1552,7 +1716,6 @@ export class StakingService {
       members: { userAddress: string; business: number }[];
     }[];
   }> {
-    // Recursive function to collect members at each level and calculate business
     const fetchTeamWithLevels = async (
       addresses: string[],
       level: number,
@@ -1585,7 +1748,6 @@ export class StakingService {
         return { totalTeamSize, totalBusiness, levels: result };
       }
 
-      // Fetch direct members and their stakes (business) for all addresses at the current level
       const allDirectMembers = await Promise.all(
         addresses.map(async (address) => {
           const user = await this.referralTrailModel.findOne({
@@ -1593,7 +1755,6 @@ export class StakingService {
           });
           const directMembers = user?.directMembers || [];
 
-          // Fetch business (stake) for each direct member
           return await Promise.all(
             directMembers.map(async (member) => {
               const stakeData = await this.StakingModel.aggregate([
@@ -1601,12 +1762,12 @@ export class StakingService {
                 { $group: { _id: null, totalStake: { $sum: '$amount' } } },
               ]);
 
-              console.log('Stake Data:', stakeData); // Log the entire stake data result
+              console.log('Stake Data:', stakeData);
 
               if (stakeData.length === 0) {
                 console.log('No stake data found for member:', member);
               } else {
-                console.log('Total Stake:', stakeData[0].totalStake); // Print the total stake value
+                console.log('Total Stake:', stakeData[0].totalStake);
               }
 
               return {
@@ -1618,10 +1779,8 @@ export class StakingService {
         }),
       );
 
-      // Flatten the array of arrays
       const membersWithBusiness = allDirectMembers.flat();
 
-      // Stop recursion if no new members are found
       if (membersWithBusiness.length === 0) {
         const totalTeamSize = result.reduce(
           (sum, levelData) => sum + levelData.members.length,
@@ -1639,10 +1798,8 @@ export class StakingService {
         return { totalTeamSize, totalBusiness, levels: result };
       }
 
-      // Add current level data to the result
       result.push({ level, members: membersWithBusiness });
 
-      // Recursively collect data for the next level
       return fetchTeamWithLevels(
         membersWithBusiness.map((m) => m.userAddress),
         level + 1,
@@ -1650,7 +1807,6 @@ export class StakingService {
       );
     };
 
-    // Start recursion from the given user at level 1
     return await fetchTeamWithLevels([userAddress], 1, []);
   }
 
@@ -2155,5 +2311,18 @@ export class StakingService {
       }),
     );
     return data;
+  }
+
+  async getFit24TokenPrice() {
+    try {
+      const url =
+        'https://sapi.xt.com/v4/public/ticker/price?symbol=fit24_usdt';
+      const response = await axios.get(url);
+      console.log({ response : response.data.result });
+      console.log('Yash');
+      return response.data.result[0];
+    } catch (error) {
+      console.error(error);
+    }
   }
 }
