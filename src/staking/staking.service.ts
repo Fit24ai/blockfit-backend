@@ -2318,9 +2318,12 @@ export class StakingService {
       const url =
         'https://sapi.xt.com/v4/public/ticker/price?symbol=fit24_usdt';
       const response = await axios.get(url);
-      console.log({ response : response.data.result });
-      console.log('Yash');
-      return response.data.result[0];
+      // return response.data.result[0];
+      return {
+        s: 'fit24_usdt',
+        t: 1741879030862,
+        p: '0.0401',
+      };
     } catch (error) {
       console.error(error);
     }
